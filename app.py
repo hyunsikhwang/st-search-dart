@@ -558,26 +558,26 @@ if search_btn and company_name and year_month:
                             font=dict(family='Arial, sans-serif', size=11)
                         )
 
-                        # 영업이익률 상단/하단 수평 점선 추가
-                        max_margin = view_df['영업이익률'].max() * 1.15
-                        min_margin = 0
+                        # 영업이익률 상단/하단 수평 점선 추가 (실제 최대/최소값 위치에 표시)
+                        actual_max = view_df['영업이익률'].max()
+                        actual_min = view_df['영업이익률'].min()
 
                         fig.add_hline(
-                            y=max_margin,
+                            y=actual_max,
                             line_dash="dot",
                             line_color="rgba(46, 204, 113, 0.3)",
                             line_width=1,
-                            annotation_text=f"최대: {view_df['영업이익률'].max():.1f}%",
+                            annotation_text=f"최대: {actual_max:.1f}%",
                             annotation_position="right",
                             annotation_font=dict(color='#2ECC71', size=10)
                         )
 
                         fig.add_hline(
-                            y=min_margin,
+                            y=actual_min,
                             line_dash="dot",
                             line_color="rgba(46, 204, 113, 0.3)",
                             line_width=1,
-                            annotation_text=f"최소: {view_df['영업이익률'].min():.1f}%",
+                            annotation_text=f"최소: {actual_min:.1f}%",
                             annotation_position="right",
                             annotation_font=dict(color='#2ECC71', size=10)
                         )
