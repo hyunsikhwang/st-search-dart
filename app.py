@@ -470,15 +470,20 @@ if search_btn and company_name and year_month:
                         # Plotly를 사용하여 차트 생성 (영업이익률: primary y-axis, 매출액/영업이익: secondary y-axis)
                         fig = go.Figure()
 
-                        # Primary Y-axis: 영업이익률 (Line)
+                        # Primary Y-axis: 영업이익률 (Smooth Line)
                         fig.add_trace(go.Scatter(
                             x=view_df['기간'],
                             y=view_df['영업이익률'],
                             name='영업이익률 (%)',
                             mode='lines+markers',
-                            line=dict(color='green', width=3),
-                            marker=dict(size=8),
-                            yaxis='y'
+                            line=dict(color='#2ECC71', width=3, shape='spline'),
+                            marker=dict(size=8, color='#2ECC71', symbol='circle'),
+                            fill='tonexty',
+                            fillcolor='rgba(46, 204, 113, 0.1)',
+                            yaxis='y',
+                            text=view_df['영업이익률'].round(1).astype(str) + '%',
+                            textposition='top center',
+                            textfont=dict(color='#2ECC71', size=10)
                         ))
 
                         # Secondary Y-axis: 매출액 (Bar)
@@ -486,8 +491,12 @@ if search_btn and company_name and year_month:
                             x=view_df['기간'],
                             y=view_df['매출액'],
                             name='매출액 (백만원)',
-                            marker=dict(color='royalblue'),
-                            yaxis='y2'
+                            marker=dict(color='#3498DB', opacity=0.8),
+                            yaxis='y2',
+                            text=view_df['매출액'].round(0).astype(str),
+                            textposition='outside',
+                            textfont=dict(color='#3498DB', size=10),
+                            hovertemplate='<b>%{x}</b><br>매출액: %{y:,.0f}백만원<extra></extra>'
                         ))
 
                         # Secondary Y-axis: 영업이익 (Bar)
@@ -495,24 +504,40 @@ if search_btn and company_name and year_month:
                             x=view_df['기간'],
                             y=view_df['영업이익'],
                             name='영업이익 (백만원)',
-                            marker=dict(color='firebrick'),
-                            yaxis='y2'
+                            marker=dict(color='#E74C3C', opacity=0.8),
+                            yaxis='y2',
+                            text=view_df['영업이익'].round(0).astype(str),
+                            textposition='outside',
+                            textfont=dict(color='#E74C3C', size=10),
+                            hovertemplate='<b>%{x}</b><br>영업이익: %{y:,.0f}백만원<extra></extra>'
                         ))
 
                         # 레이아웃 설정
                         fig.update_layout(
                             title='재무 추이 (영업이익률, 매출액, 영업이익)',
-                            xaxis=dict(title='기간'),
+                            xaxis=dict(
+                                title='기간',
+                                tickfont=dict(size=11),
+                                showgrid=False
+                            ),
                             yaxis=dict(
                                 title='영업이익률 (%)',
-                                tickfont=dict(color='green'),
-                                side='left'
+                                tickfont=dict(color='#2ECC71', size=11),
+                                side='left',
+                                range=[0, max(view_df['영업이익률'].max() * 1.2, 100)],  # 최소 0%, 최대값의 120%
+                                showgrid=True,
+                                gridcolor='rgba(46, 204, 113, 0.05)',
+                                gridwidth=1,
+                                zeroline=True,
+                                zerolinecolor='rgba(46, 204, 113, 0.3)',
+                                zerolinewidth=2
                             ),
                             yaxis2=dict(
                                 title='금액 (백만원)',
-                                tickfont=dict(color='royalblue'),
+                                tickfont=dict(color='#3498DB', size=11),
                                 overlaying='y',
-                                side='right'
+                                side='right',
+                                showgrid=False
                             ),
                             hovermode='x unified',
                             legend=dict(
@@ -520,11 +545,41 @@ if search_btn and company_name and year_month:
                                 yanchor="bottom",
                                 y=1.02,
                                 xanchor="right",
-                                x=1
+                                x=1,
+                                bgcolor='rgba(255,255,255,0.8)',
+                                bordercolor='rgba(0,0,0,0.1)',
+                                borderwidth=1
                             ),
                             barmode='group',
-                            margin=dict(l=50, r=50, b=50, t=80, pad=4),
-                            height=500
+                            plot_bgcolor='rgba(250,250,250,0.9)',
+                            paper_bgcolor='white',
+                            margin=dict(l=60, r=60, b=60, t=80, pad=4),
+                            height=550,
+                            font=dict(family='Arial, sans-serif', size=11)
+                        )
+
+                        # 영업이익률 상단/하단 수평 점선 추가
+                        max_margin = view_df['영업이익률'].max() * 1.15
+                        min_margin = 0
+
+                        fig.add_hline(
+                            y=max_margin,
+                            line_dash="dot",
+                            line_color="rgba(46, 204, 113, 0.3)",
+                            line_width=1,
+                            annotation_text=f"최대: {view_df['영업이익률'].max():.1f}%",
+                            annotation_position="right",
+                            annotation_font=dict(color='#2ECC71', size=10)
+                        )
+
+                        fig.add_hline(
+                            y=min_margin,
+                            line_dash="dot",
+                            line_color="rgba(46, 204, 113, 0.3)",
+                            line_width=1,
+                            annotation_text=f"최소: {view_df['영업이익률'].min():.1f}%",
+                            annotation_position="right",
+                            annotation_font=dict(color='#2ECC71', size=10)
                         )
 
                         st.plotly_chart(fig, use_container_width=True)
