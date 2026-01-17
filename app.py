@@ -9,6 +9,7 @@ import os
 import concurrent.futures
 import time
 import plotly.graph_objects as go
+import great_tables as gt
 from typing import Optional, Dict, List
 
 # ==========================================
@@ -445,23 +446,89 @@ if search_btn and company_name and year_month:
                         status.update(label=f"✅ 조회 완료! ({elapsed:.2f}초)", state="complete")
                         
                         st.subheader(f"{company_name} 재무 추이")
-                        st.dataframe(
-                            view_df,
-                            use_container_width=True,
-                            hide_index=True,
-                            column_config={
-                                "기간": st.column_config.TextColumn("기간", width="medium"),
-                                "매출액": st.column_config.NumberColumn(
-                                    "매출액 (백만원)", format="%d"
+
+                        # Create a GT table with styling
+                        gt_table = (
+                            gt.GT(view_df)
+                            .tab_header(
+                                title=f"{company_name} 재무 추이",
+                                subtitle="최근 4년치 재무 데이터"
+                            )
+                            .fmt_number(
+                                columns=["매출액", "영업이익"],
+                                decimals=0,
+                                use_sep=True
+                            )
+                            .fmt_number(
+                                columns=["영업이익률"],
+                                decimals=2,
+                                suffix="%"
+                            )
+                            .tab_style(
+                                style=gt.Style(
+                                    cell_text=gt.cell_text(weight="bold"),
+                                    cell_fill=gt.cell_fill(color="#f0f2f6"),
+                                    cell_borders=gt.cell_borders(sides="top", color="#e0e0e0", weight=2)
                                 ),
-                                "영업이익": st.column_config.NumberColumn(
-                                    "영업이익 (백만원)", format="%d"
+                                locations=gt.locations.cells_column_labels()
+                            )
+                            .tab_style(
+                                style=gt.Style(
+                                    cell_fill=gt.cell_fill(color="#e8f4f8"),
+                                    cell_text=gt.cell_text(weight="bold", color="#2c3e50")
                                 ),
-                                "영업이익률": st.column_config.NumberColumn(
-                                    "영업이익률 (%)", format="%.2f %%"
+                                locations=gt.locations.cells_column_labels(columns=["기간"])
+                            )
+                            .tab_style(
+                                style=gt.Style(
+                                    cell_fill=gt.cell_fill(color="#e3f2fd"),
+                                    cell_text=gt.cell_text(weight="bold", color="#1976d2")
                                 ),
-                            }
+                                locations=gt.locations.cells_column_labels(columns=["매출액", "영업이익"])
+                            )
+                            .tab_style(
+                                style=gt.Style(
+                                    cell_fill=gt.cell_fill(color="#e8f5e9"),
+                                    cell_text=gt.cell_text(weight="bold", color="#2e7d32")
+                                ),
+                                locations=gt.locations.cells_column_labels(columns=["영업이익률"])
+                            )
+                            .tab_style(
+                                style=gt.Style(
+                                    cell_fill=gt.cell_fill(color="#f5f5f5"),
+                                    cell_borders=gt.cell_borders(sides="bottom", color="#e0e0e0", weight=1)
+                                ),
+                                locations=gt.locations.cells_row_groups()
+                            )
+                            .tab_style(
+                                style=gt.Style(
+                                    cell_fill=gt.cell_fill(color="#ffffff"),
+                                    cell_borders=gt.cell_borders(sides="left right", color="#e0e0e0", weight=1)
+                                ),
+                                locations=gt.locations.cells_body()
+                            )
+                            .tab_style(
+                                style=gt.Style(
+                                    cell_fill=gt.cell_fill(color="#fafafa"),
+                                    cell_text=gt.cell_text(weight="bold")
+                                ),
+                                locations=gt.locations.cells_body(columns=["기간"])
+                            )
+                            .tab_style(
+                                style=gt.Style(
+                                    cell_fill=gt.cell_fill(color="#ffffff")
+                                ),
+                                locations=gt.locations.cells_body(columns=["매출액", "영업이익", "영업이익률"])
+                            )
+                            .tab_options(
+                                table_font_size="small",
+                                heading_title_font_size="large",
+                                heading_subtitle_font_size="small",
+                                table_width="100%"
+                            )
                         )
+
+                        st.table(gt_table)
                         
                         # 차트 시각화 (보너스 기능)
                         st.divider()
