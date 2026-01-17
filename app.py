@@ -461,8 +461,11 @@ if search_btn and company_name and year_month:
                             )
                             .fmt_number(
                                 columns=["영업이익률"],
-                                decimals=2,
-                                suffix="%"
+                                decimals=2
+                            )
+                            .fmt(
+                                columns=["영업이익률"],
+                                fns=lambda x: f"{x:.2f}%"
                             )
                             .tab_style(
                                 style=gt.Style(
