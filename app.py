@@ -21,13 +21,24 @@ st.set_page_config(
     layout="wide"
 )
 
-DB_PATH = "financial_data.duckdb"
-
 # API 키 가져오기 (Streamlit Secrets 우선, 없으면 환경변수)
 try:
     API_KEY = st.secrets["DART_API_KEY"]
 except (FileNotFoundError, KeyError):
     API_KEY = os.getenv("DART_API_KEY")
+
+# MotherDuck 설정
+try:
+    MD_TOKEN = st.secrets["MOTHERDUCK_TOKEN"]
+except (FileNotFoundError, KeyError):
+    MD_TOKEN = os.getenv("MOTHERDUCK_TOKEN")
+
+if MD_TOKEN:
+    # MotherDuck 연결 (토큰이 있으면 md: prefix 사용)
+    DB_PATH = f"md:dart_financials?motherduck_token={MD_TOKEN}"
+else:
+    # 로컬 DuckDB 연결
+    DB_PATH = "financial_data.duckdb"
 
 # ==========================================
 # 1. Database 초기화
@@ -188,7 +199,7 @@ def save_financial_data_to_db(df: pd.DataFrame, corp_code: str, year: int, quart
         """, data_to_insert)
         conn.close()
     except Exception as e:
-        print(f"DB 저장 실패: {e}")
+        st.error(f"데이터베이스 저장 중 오류가 발생했습니다: {e}")
 
 def get_quarter_info(year_month: int) -> tuple:
     year = year_month // 100
