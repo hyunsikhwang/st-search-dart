@@ -426,14 +426,37 @@ def is_mobile():
 
 # 검색 폼 (사이드바 대신 메인 영역에 배치)
 st.header("🔍 검색 설정")
+
+# CSS 주입으로 여백 조정
+st.markdown("""
+<style>
+    .stAppHeader {
+        padding: 0.5rem 1rem !important;
+    }
+    .stMainBlockContainer {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+    .stTextInput input {
+        height: 40px !important;
+    }
+    .stButton button {
+        height: 40px !important;
+    }
+    .stForm {
+        margin-bottom: 0.5rem !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 with st.form(key="search_form"):
     col1, col2, col3 = st.columns([3, 2, 1])
     with col1:
-        company_name = st.text_input("회사명", placeholder="예: 삼성전자")
+        company_name = st.text_input("회사명", placeholder="예: 삼성전자", key="company_input")
     with col2:
-        year_month = st.text_input("기준 연월 (YYYYMM)", value="202509", placeholder="202509")
+        year_month = st.text_input("기준 연월 (YYYYMM)", value="202509", placeholder="202509", key="year_month_input")
     with col3:
-        search_btn = st.form_submit_button("조회하기", type="primary", use_container_width=True)
+        search_btn = st.form_submit_button("조회하기", type="primary", use_container_width=True, key="search_button")
 
 st.markdown("---")
 st.caption("Data source: Open DART API")
