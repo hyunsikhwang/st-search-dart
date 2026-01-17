@@ -449,6 +449,10 @@ st.markdown("""
         margin: 0 !important;
         box-sizing: border-box !important;
     }
+    .stVerticalBlock {
+        padding-top: 1rem !important;
+        padding-down: 0.1rem !important;
+    }
     .stForm {
         margin-bottom: 0.5rem !important;
     }
