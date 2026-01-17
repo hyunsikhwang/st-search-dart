@@ -411,9 +411,13 @@ if not API_KEY:
 
 with st.sidebar:
     st.header("검색 설정")
-    company_name = st.text_input("회사명", placeholder="예: 삼성전자")
-    year_month = st.text_input("기준 연월 (YYYYMM)", value="202509", placeholder="202509")
-    search_btn = st.button("조회하기", type="primary", use_container_width=True)
+
+    # 폼을 사용하여 엔터 키로 제출 가능하게 설정
+    with st.form(key="search_form"):
+        company_name = st.text_input("회사명", placeholder="예: 삼성전자")
+        year_month = st.text_input("기준 연월 (YYYYMM)", value="202509", placeholder="202509")
+        search_btn = st.form_submit_button("조회하기", type="primary", use_container_width=True)
+
     st.markdown("---")
     st.caption("Data source: Open DART API")
 
