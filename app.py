@@ -460,7 +460,7 @@ st.markdown("""
     }
     /* 테이블 행 높이 조정 */
     .gt_table tbody tr td {
-        height: 80% !important;
+        height: 75% !important;
         padding: 0.4rem 0.6rem !important;
     }
 </style>
