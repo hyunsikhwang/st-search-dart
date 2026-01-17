@@ -717,7 +717,6 @@ if search_btn and company_name and year_month:
                             # 모바일: 기존과 동일하게 위아래로 표시
                             st.html(gt_table.as_raw_html())
                             st.divider()
-                            st.subheader("📈 Trend Chart")
                             st.plotly_chart(fig, use_container_width=True)
                         else:
                             # 데스크톱: 왼쪽(테이블) / 오른쪽(차트) 분할
@@ -728,7 +727,6 @@ if search_btn and company_name and year_month:
                                 st.html(gt_table.as_raw_html())
 
                             with right_col:
-                                st.subheader("📈 Trend Chart")
                                 st.plotly_chart(fig, use_container_width=True)
 
                 except Exception as e:
