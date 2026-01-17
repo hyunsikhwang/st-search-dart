@@ -457,7 +457,7 @@ if search_btn and company_name and year_month:
                             .fmt_number(
                                 columns=["매출액", "영업이익"],
                                 decimals=0,
-                                use_sep=True
+                                use_seps=True
                             )
                             .fmt_number(
                                 columns=["영업이익률"],
