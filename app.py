@@ -645,7 +645,7 @@ if search_btn and company_name and year_month:
 
                         # 레이아웃 설정
                         fig.update_layout(
-                            title='재무 추이 (영업이익률, 매출액, 영업이익)',
+                            title='📈Trend Chart',
                             xaxis=dict(
                                 title='기간',
                                 tickfont=dict(size=11),
