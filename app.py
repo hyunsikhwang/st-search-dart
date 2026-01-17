@@ -434,8 +434,8 @@ st.markdown("""
         padding: 0.5rem 1rem !important;
     }
     .stMainBlockContainer {
-        padding-top: 3rem !important;
-        padding-bottom: 3rem !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
     }
     .stTextInput input {
         height: 40px !important;
@@ -445,18 +445,23 @@ st.markdown("""
     }
     .stButton button {
         height: 40px !important;
-        padding: 1rem !important;
+        padding: 0.5rem !important;
         margin: 0 !important;
         box-sizing: border-box !important;
     }
     .stForm {
         margin-bottom: 0.5rem !important;
     }
-    /* 컬럼 내 요소 수직 정렬 */
+    /* 컬럼 내 요소 수직 정렬 및 bottom line 일치 */
     .stColumn > div {
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
+    }
+    /* 버튼과 입력창의 bottom 정렬 일치 */
+    .stButton {
+        display: flex !important;
+        align-items: flex-end !important;
     }
 </style>
 """, unsafe_allow_html=True)
