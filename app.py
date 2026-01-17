@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 import os
 import concurrent.futures
 import time
+import plotly.graph_objects as go
 from typing import Optional, Dict, List
 
 # ==========================================
@@ -465,8 +466,69 @@ if search_btn and company_name and year_month:
                         # 차트 시각화 (보너스 기능)
                         st.divider()
                         st.subheader("📈 Trend Chart")
-                        chart_df = view_df.set_index("기간")
-                        st.line_chart(chart_df[['매출액', '영업이익']])
+
+                        # Plotly를 사용하여 secondary y-axis 추가
+                        fig = go.Figure()
+
+                        # Primary Y-axis: 매출액과 영업이익
+                        fig.add_trace(go.Scatter(
+                            x=view_df['기간'],
+                            y=view_df['매출액'],
+                            name='매출액 (백만원)',
+                            mode='lines+markers',
+                            line=dict(color='royalblue', width=2),
+                            marker=dict(size=6)
+                        ))
+
+                        fig.add_trace(go.Scatter(
+                            x=view_df['기간'],
+                            y=view_df['영업이익'],
+                            name='영업이익 (백만원)',
+                            mode='lines+markers',
+                            line=dict(color='firebrick', width=2),
+                            marker=dict(size=6)
+                        ))
+
+                        # Secondary Y-axis: 영업이익률
+                        fig.add_trace(go.Scatter(
+                            x=view_df['기간'],
+                            y=view_df['영업이익률'],
+                            name='영업이익률 (%)',
+                            mode='lines+markers',
+                            line=dict(color='green', width=2, dash='dash'),
+                            marker=dict(size=6),
+                            yaxis='y2'
+                        ))
+
+                        # 레이아웃 설정
+                        fig.update_layout(
+                            title='재무 추이 (매출액, 영업이익, 영업이익률)',
+                            xaxis=dict(title='기간'),
+                            yaxis=dict(
+                                title='금액 (백만원)',
+                                titlefont=dict(color='royalblue'),
+                                tickfont=dict(color='royalblue')
+                            ),
+                            yaxis2=dict(
+                                title='영업이익률 (%)',
+                                titlefont=dict(color='green'),
+                                tickfont=dict(color='green'),
+                                overlaying='y',
+                                side='right'
+                            ),
+                            hovermode='x unified',
+                            legend=dict(
+                                orientation="h",
+                                yanchor="bottom",
+                                y=1.02,
+                                xanchor="right",
+                                x=1
+                            ),
+                            margin=dict(l=50, r=50, b=50, t=80, pad=4),
+                            height=500
+                        )
+
+                        st.plotly_chart(fig, use_container_width=True)
 
                 except Exception as e:
                     status.update(label="❌ 오류 발생", state="error")
