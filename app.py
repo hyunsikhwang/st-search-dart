@@ -468,58 +468,58 @@ if search_btn and company_name and year_month:
                                 fns=lambda x: f"{x:.2f}%"
                             )
                             .tab_style(
-                                style=gt.Style(
-                                    cell_text=gt.cell_text(weight="bold"),
-                                    cell_fill=gt.cell_fill(color="#f0f2f6"),
-                                    cell_borders=gt.cell_borders(sides="top", color="#e0e0e0", weight=2)
+                                style=gt._styles.CellStyle(
+                                    text=gt._styles.CellStyleText(weight="bold"),
+                                    fill=gt._styles.CellStyleFill(color="#f0f2f6"),
+                                    borders=gt._styles.CellStyleBorders(sides="top", color="#e0e0e0", weight=2)
                                 ),
                                 locations=gt.locations.cells_column_labels()
                             )
                             .tab_style(
-                                style=gt.Style(
-                                    cell_fill=gt.cell_fill(color="#e8f4f8"),
-                                    cell_text=gt.cell_text(weight="bold", color="#2c3e50")
+                                style=gt._styles.CellStyle(
+                                    fill=gt._styles.CellStyleFill(color="#e8f4f8"),
+                                    text=gt._styles.CellStyleText(weight="bold", color="#2c3e50")
                                 ),
                                 locations=gt.locations.cells_column_labels(columns=["기간"])
                             )
                             .tab_style(
-                                style=gt.Style(
-                                    cell_fill=gt.cell_fill(color="#e3f2fd"),
-                                    cell_text=gt.cell_text(weight="bold", color="#1976d2")
+                                style=gt._styles.CellStyle(
+                                    fill=gt._styles.CellStyleFill(color="#e3f2fd"),
+                                    text=gt._styles.CellStyleText(weight="bold", color="#1976d2")
                                 ),
                                 locations=gt.locations.cells_column_labels(columns=["매출액", "영업이익"])
                             )
                             .tab_style(
-                                style=gt.Style(
-                                    cell_fill=gt.cell_fill(color="#e8f5e9"),
-                                    cell_text=gt.cell_text(weight="bold", color="#2e7d32")
+                                style=gt._styles.CellStyle(
+                                    fill=gt._styles.CellStyleFill(color="#e8f5e9"),
+                                    text=gt._styles.CellStyleText(weight="bold", color="#2e7d32")
                                 ),
                                 locations=gt.locations.cells_column_labels(columns=["영업이익률"])
                             )
                             .tab_style(
-                                style=gt.Style(
-                                    cell_fill=gt.cell_fill(color="#f5f5f5"),
-                                    cell_borders=gt.cell_borders(sides="bottom", color="#e0e0e0", weight=1)
+                                style=gt._styles.CellStyle(
+                                    fill=gt._styles.CellStyleFill(color="#f5f5f5"),
+                                    borders=gt._styles.CellStyleBorders(sides="bottom", color="#e0e0e0", weight=1)
                                 ),
                                 locations=gt.locations.cells_row_groups()
                             )
                             .tab_style(
-                                style=gt.Style(
-                                    cell_fill=gt.cell_fill(color="#ffffff"),
-                                    cell_borders=gt.cell_borders(sides="left right", color="#e0e0e0", weight=1)
+                                style=gt._styles.CellStyle(
+                                    fill=gt._styles.CellStyleFill(color="#ffffff"),
+                                    borders=gt._styles.CellStyleBorders(sides="left right", color="#e0e0e0", weight=1)
                                 ),
                                 locations=gt.locations.cells_body()
                             )
                             .tab_style(
-                                style=gt.Style(
-                                    cell_fill=gt.cell_fill(color="#fafafa"),
-                                    cell_text=gt.cell_text(weight="bold")
+                                style=gt._styles.CellStyle(
+                                    fill=gt._styles.CellStyleFill(color="#fafafa"),
+                                    text=gt._styles.CellStyleText(weight="bold")
                                 ),
                                 locations=gt.locations.cells_body(columns=["기간"])
                             )
                             .tab_style(
-                                style=gt.Style(
-                                    cell_fill=gt.cell_fill(color="#ffffff")
+                                style=gt._styles.CellStyle(
+                                    fill=gt._styles.CellStyleFill(color="#ffffff")
                                 ),
                                 locations=gt.locations.cells_body(columns=["매출액", "영업이익", "영업이익률"])
                             )
