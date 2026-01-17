@@ -575,7 +575,8 @@ if search_btn and company_name and year_month:
                             .tab_style(
                                 style=[
                                     gt.style.fill(color="#ffffff"),
-                                    gt.style.borders(sides=["left", "right"], color="#e0e0e0", weight="1px")
+                                    gt.style.borders(sides=["left", "right"], color="#e0e0e0", weight="1px"),
+                                    gt.style.cell_style(height="80%")
                                 ],
                                 locations=gt.loc.body()
                             )
