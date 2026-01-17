@@ -409,17 +409,34 @@ if not API_KEY:
     st.error("🚨 DART API Key가 설정되지 않았습니다. Streamlit Secrets에 `DART_API_KEY`를 설정해주세요.")
     st.stop()
 
-with st.sidebar:
-    st.header("검색 설정")
+# 모바일 여부 감지 함수
+def is_mobile():
+    try:
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
+        ctx = get_script_run_ctx()
+        if ctx is None:
+            return False
+        session_info = ctx.session_info
+        if session_info is None:
+            return False
+        user_agent = session_info.request.headers.get('User-Agent', '')
+        return 'Mobile' in user_agent or 'Android' in user_agent or 'iPhone' in user_agent
+    except:
+        return False
 
-    # 폼을 사용하여 엔터 키로 제출 가능하게 설정
-    with st.form(key="search_form"):
+# 검색 폼 (사이드바 대신 메인 영역에 배치)
+st.header("🔍 검색 설정")
+with st.form(key="search_form"):
+    col1, col2, col3 = st.columns([3, 2, 1])
+    with col1:
         company_name = st.text_input("회사명", placeholder="예: 삼성전자")
+    with col2:
         year_month = st.text_input("기준 연월 (YYYYMM)", value="202509", placeholder="202509")
+    with col3:
         search_btn = st.form_submit_button("조회하기", type="primary", use_container_width=True)
 
-    st.markdown("---")
-    st.caption("Data source: Open DART API")
+st.markdown("---")
+st.caption("Data source: Open DART API")
 
 if search_btn and company_name and year_month:
     if not year_month.isdigit() or len(year_month) != 6:
@@ -427,7 +444,11 @@ if search_btn and company_name and year_month:
     else:
         with st.status("데이터를 조회하고 있습니다...", expanded=True) as status:
             st.write("🏢 기업 고유번호 검색 중...")
-            corp_code = search_company_code(API_KEY, company_name)
+            if API_KEY is None:
+                status.update(label="❌ API 키 오류", state="error")
+                st.error("DART API 키가 설정되지 않았습니다.")
+            else:
+                corp_code = search_company_code(API_KEY, company_name)
             
             if not corp_code:
                 status.update(label="❌ 회사를 찾을 수 없습니다.", state="error")
@@ -546,12 +567,7 @@ if search_btn and company_name and year_month:
                             )
                         )
 
-                        st.html(gt_table.as_raw_html())
-                        
                         # 차트 시각화
-                        st.divider()
-                        st.subheader("📈 Trend Chart")
-
                         fig = go.Figure()
 
                         # Primary Y-axis: 영업이익률 (Smooth Line)
@@ -659,7 +675,23 @@ if search_btn and company_name and year_month:
                             annotation_font=dict(color='#2ECC71', size=10)
                         )
 
-                        st.plotly_chart(fig, use_container_width=True)
+                        # 조건부 레이아웃: 데스크톱 vs 모바일
+                        if is_mobile():
+                            # 모바일: 기존과 동일하게 위아래로 표시
+                            st.html(gt_table.as_raw_html())
+                            st.divider()
+                            st.subheader("📈 Trend Chart")
+                            st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            # 데스크톱: 왼쪽(테이블) / 오른쪽(차트) 분할
+                            left_col, right_col = st.columns([1, 1])
+
+                            with left_col:
+                                st.html(gt_table.as_raw_html())
+
+                            with right_col:
+                                st.subheader("📈 Trend Chart")
+                                st.plotly_chart(fig, use_container_width=True)
 
                 except Exception as e:
                     status.update(label="❌ 오류 발생", state="error")
