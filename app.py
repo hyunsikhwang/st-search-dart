@@ -427,7 +427,7 @@ def is_mobile():
 # 검색 폼 (사이드바 대신 메인 영역에 배치)
 st.header("🔍 검색 설정")
 
-# CSS 주입으로 여백 및 높이 조정
+# CSS 주입: 인풋박스와 버튼의 높이를 강제로 맞춤
 st.markdown("""
 <style>
     .stAppHeader {
@@ -437,6 +437,7 @@ st.markdown("""
         padding-top: 3rem !important;
         padding-bottom: 0.5rem !important;
     }
+    /* Input과 Button의 높이 통일 (40px) */
     .stTextInput input {
         height: 40px !important;
         padding: 0.5rem !important;
@@ -452,12 +453,6 @@ st.markdown("""
     .stForm {
         margin-bottom: 0.5rem !important;
     }
-    /* 컬럼 내 요소 수직 정렬 및 bottom line 일치 */
-    .stColumn > div {
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: flex-end !important;
-    }
     /* 테이블 행 높이 조정 */
     .gt_table tbody tr td {
         height: 75% !important;
@@ -467,7 +462,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 with st.form(key="search_form"):
-    col1, col2, col3 = st.columns([3, 2, 1])
+    # [수정] vertical_alignment="bottom" 적용
+    # 텍스트 인풋(라벨 있음)과 버튼(라벨 없음)의 밑선을 맞춤
+    col1, col2, col3 = st.columns([3, 2, 1], vertical_alignment="bottom")
+    
     with col1:
         company_name = st.text_input("회사명", placeholder="예: 삼성전자", key="company_input")
     with col2:
@@ -517,8 +515,7 @@ if search_btn and company_name and year_month:
                         st.subheader(f"{company_name} 재무 추이")
 
                         # ==========================================================
-                        # FIXED: Great Tables Styling Logic
-                        # CellStyle 래퍼를 사용하지 않고, gt.style.* 리스트를 직접 전달
+                        # Great Tables Styling Logic
                         # ==========================================================
                         gt_table = (
                             gt.GT(view_df)
@@ -568,7 +565,7 @@ if search_btn and company_name and year_month:
                                 ],
                                 locations=gt.loc.column_labels(columns=["영업이익률"])
                             )
-                            # 5. 행 그룹 스타일 (여기서는 행 그룹이 명시적으로 없으므로 body나 stub에 적용될 수 있음)
+                            # 5. 행 그룹 스타일
                             .tab_style(
                                 style=[
                                     gt.style.fill(color="#f5f5f5"),
@@ -724,7 +721,8 @@ if search_btn and company_name and year_month:
                             st.plotly_chart(fig, use_container_width=True)
                         else:
                             # 데스크톱: 왼쪽(테이블) / 오른쪽(차트) 분할
-                            left_col, right_col = st.columns([1, 1])
+                            # [수정] vertical_alignment="top" 적용 (테이블과 차트 상단 맞춤)
+                            left_col, right_col = st.columns([1, 1], vertical_alignment="top")
 
                             with left_col:
                                 st.html(gt_table.as_raw_html())
