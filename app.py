@@ -493,9 +493,6 @@ if search_btn and company_name and year_month:
                             name='매출액 (백만원)',
                             marker=dict(color='#3498DB', opacity=0.8),
                             yaxis='y2',
-                            text=view_df['매출액'].round(0).astype(str),
-                            textposition='outside',
-                            textfont=dict(color='#3498DB', size=10),
                             hovertemplate='<b>%{x}</b><br>매출액: %{y:,.0f}백만원<extra></extra>'
                         ))
 
@@ -506,9 +503,6 @@ if search_btn and company_name and year_month:
                             name='영업이익 (백만원)',
                             marker=dict(color='#E74C3C', opacity=0.8),
                             yaxis='y2',
-                            text=view_df['영업이익'].round(0).astype(str),
-                            textposition='outside',
-                            textfont=dict(color='#E74C3C', size=10),
                             hovertemplate='<b>%{x}</b><br>영업이익: %{y:,.0f}백만원<extra></extra>'
                         ))
 
@@ -565,8 +559,8 @@ if search_btn and company_name and year_month:
                         fig.add_hline(
                             y=actual_max,
                             line_dash="dot",
-                            line_color="rgba(46, 204, 113, 0.3)",
-                            line_width=1,
+                            line_color="#2ECC71",
+                            line_width=1.5,
                             annotation_text=f"최대: {actual_max:.1f}%",
                             annotation_position="right",
                             annotation_font=dict(color='#2ECC71', size=10)
@@ -575,8 +569,8 @@ if search_btn and company_name and year_month:
                         fig.add_hline(
                             y=actual_min,
                             line_dash="dot",
-                            line_color="rgba(46, 204, 113, 0.3)",
-                            line_width=1,
+                            line_color="#2ECC71",
+                            line_width=1.5,
                             annotation_text=f"최소: {actual_min:.1f}%",
                             annotation_position="right",
                             annotation_font=dict(color='#2ECC71', size=10)
