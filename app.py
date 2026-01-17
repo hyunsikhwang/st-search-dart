@@ -434,7 +434,7 @@ st.markdown("""
         padding: 0.5rem 1rem !important;
     }
     .stMainBlockContainer {
-        padding-top: 0.5rem !important;
+        padding-top: 3rem !important;
         padding-bottom: 0.5rem !important;
     }
     .stTextInput input {
@@ -456,12 +456,7 @@ st.markdown("""
     .stColumn > div {
         display: flex !important;
         flex-direction: column !important;
-        justify-content: flex-start !important;
-    }
-    /* 버튼과 입력창의 bottom 정렬 일치 */
-    .stButton {
-        display: flex !important;
-        align-items: flex-end !important;
+        justify-content: flex-end !important;
     }
 </style>
 """, unsafe_allow_html=True)
