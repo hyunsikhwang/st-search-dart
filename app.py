@@ -427,24 +427,36 @@ def is_mobile():
 # 검색 폼 (사이드바 대신 메인 영역에 배치)
 st.header("🔍 검색 설정")
 
-# CSS 주입으로 여백 조정
+# CSS 주입으로 여백 및 높이 조정
 st.markdown("""
 <style>
     .stAppHeader {
         padding: 0.5rem 1rem !important;
     }
     .stMainBlockContainer {
-        padding-top: 3rem !important;
-        padding-bottom: 3rem !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
     }
     .stTextInput input {
         height: 40px !important;
+        padding: 0.5rem !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
     }
     .stButton button {
         height: 40px !important;
+        padding: 0.5rem !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
     }
     .stForm {
         margin-bottom: 0.5rem !important;
+    }
+    /* 컬럼 내 요소 수직 정렬 */
+    .stColumn > div {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
     }
 </style>
 """, unsafe_allow_html=True)
