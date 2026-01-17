@@ -447,7 +447,10 @@ if search_btn and company_name and year_month:
                         
                         st.subheader(f"{company_name} 재무 추이")
 
-                        # Create a GT table with styling
+                        # ==========================================================
+                        # FIXED: Great Tables Styling Logic
+                        # CellStyle 래퍼를 사용하지 않고, gt.style.* 리스트를 직접 전달
+                        # ==========================================================
                         gt_table = (
                             gt.GT(view_df)
                             .tab_header(
@@ -467,61 +470,69 @@ if search_btn and company_name and year_month:
                                 columns=["영업이익률"],
                                 fns=lambda x: f"{x:.2f}%"
                             )
+                            # 1. 컬럼 레이블 스타일
                             .tab_style(
-                                style=gt._styles.CellStyle(
-                                    text=gt._styles.CellStyleText(weight="bold"),
-                                    fill=gt._styles.CellStyleFill(color="#f0f2f6"),
-                                    borders=gt._styles.CellStyleBorders(sides="top", color="#e0e0e0", weight=2)
-                                ),
-                                locations=gt.locations.cells_column_labels()
+                                style=[
+                                    gt.style.text(weight="bold"),
+                                    gt.style.fill(color="#f0f2f6"),
+                                    gt.style.borders(sides="top", color="#e0e0e0", weight="2px")
+                                ],
+                                locations=gt.loc.column_labels()
                             )
+                            # 2. '기간' 컬럼 레이블 스타일
                             .tab_style(
-                                style=gt._styles.CellStyle(
-                                    fill=gt._styles.CellStyleFill(color="#e8f4f8"),
-                                    text=gt._styles.CellStyleText(weight="bold", color="#2c3e50")
-                                ),
-                                locations=gt.locations.cells_column_labels(columns=["기간"])
+                                style=[
+                                    gt.style.fill(color="#e8f4f8"),
+                                    gt.style.text(weight="bold", color="#2c3e50")
+                                ],
+                                locations=gt.loc.column_labels(columns=["기간"])
                             )
+                            # 3. '매출액', '영업이익' 컬럼 레이블 스타일
                             .tab_style(
-                                style=gt._styles.CellStyle(
-                                    fill=gt._styles.CellStyleFill(color="#e3f2fd"),
-                                    text=gt._styles.CellStyleText(weight="bold", color="#1976d2")
-                                ),
-                                locations=gt.locations.cells_column_labels(columns=["매출액", "영업이익"])
+                                style=[
+                                    gt.style.fill(color="#e3f2fd"),
+                                    gt.style.text(weight="bold", color="#1976d2")
+                                ],
+                                locations=gt.loc.column_labels(columns=["매출액", "영업이익"])
                             )
+                            # 4. '영업이익률' 컬럼 레이블 스타일
                             .tab_style(
-                                style=gt._styles.CellStyle(
-                                    fill=gt._styles.CellStyleFill(color="#e8f5e9"),
-                                    text=gt._styles.CellStyleText(weight="bold", color="#2e7d32")
-                                ),
-                                locations=gt.locations.cells_column_labels(columns=["영업이익률"])
+                                style=[
+                                    gt.style.fill(color="#e8f5e9"),
+                                    gt.style.text(weight="bold", color="#2e7d32")
+                                ],
+                                locations=gt.loc.column_labels(columns=["영업이익률"])
                             )
+                            # 5. 행 그룹 스타일 (여기서는 행 그룹이 명시적으로 없으므로 body나 stub에 적용될 수 있음)
                             .tab_style(
-                                style=gt._styles.CellStyle(
-                                    fill=gt._styles.CellStyleFill(color="#f5f5f5"),
-                                    borders=gt._styles.CellStyleBorders(sides="bottom", color="#e0e0e0", weight=1)
-                                ),
-                                locations=gt.locations.cells_row_groups()
+                                style=[
+                                    gt.style.fill(color="#f5f5f5"),
+                                    gt.style.borders(sides="bottom", color="#e0e0e0", weight="1px")
+                                ],
+                                locations=gt.loc.row_groups()
                             )
+                            # 6. 본문 셀 스타일
                             .tab_style(
-                                style=gt._styles.CellStyle(
-                                    fill=gt._styles.CellStyleFill(color="#ffffff"),
-                                    borders=gt._styles.CellStyleBorders(sides="left right", color="#e0e0e0", weight=1)
-                                ),
-                                locations=gt.locations.cells_body()
+                                style=[
+                                    gt.style.fill(color="#ffffff"),
+                                    gt.style.borders(sides=["left", "right"], color="#e0e0e0", weight="1px")
+                                ],
+                                locations=gt.loc.body()
                             )
+                            # 7. 본문 '기간' 컬럼 스타일
                             .tab_style(
-                                style=gt._styles.CellStyle(
-                                    fill=gt._styles.CellStyleFill(color="#fafafa"),
-                                    text=gt._styles.CellStyleText(weight="bold")
-                                ),
-                                locations=gt.locations.cells_body(columns=["기간"])
+                                style=[
+                                    gt.style.fill(color="#fafafa"),
+                                    gt.style.text(weight="bold")
+                                ],
+                                locations=gt.loc.body(columns=["기간"])
                             )
+                            # 8. 본문 데이터 컬럼 스타일
                             .tab_style(
-                                style=gt._styles.CellStyle(
-                                    fill=gt._styles.CellStyleFill(color="#ffffff")
-                                ),
-                                locations=gt.locations.cells_body(columns=["매출액", "영업이익", "영업이익률"])
+                                style=[
+                                    gt.style.fill(color="#ffffff")
+                                ],
+                                locations=gt.loc.body(columns=["매출액", "영업이익", "영업이익률"])
                             )
                             .tab_options(
                                 table_font_size="small",
@@ -531,13 +542,12 @@ if search_btn and company_name and year_month:
                             )
                         )
 
-                        st.table(gt_table)
+                        st.html(gt_table.as_raw_html())
                         
-                        # 차트 시각화 (보너스 기능)
+                        # 차트 시각화
                         st.divider()
                         st.subheader("📈 Trend Chart")
 
-                        # Plotly를 사용하여 차트 생성 (영업이익률: primary y-axis, 매출액/영업이익: secondary y-axis)
                         fig = go.Figure()
 
                         # Primary Y-axis: 영업이익률 (Smooth Line)
@@ -588,7 +598,7 @@ if search_btn and company_name and year_month:
                                 title='영업이익률 (%)',
                                 tickfont=dict(color='#2ECC71', size=11),
                                 side='left',
-                                range=[0, max(view_df['영업이익률'].max() * 1.2, 100)],  # 최소 0%, 최대값의 120%
+                                range=[0, max(view_df['영업이익률'].max() * 1.2, 100)],
                                 showgrid=True,
                                 gridcolor='rgba(46, 204, 113, 0.05)',
                                 gridwidth=1,
@@ -622,7 +632,6 @@ if search_btn and company_name and year_month:
                             font=dict(family='Arial, sans-serif', size=11)
                         )
 
-                        # 영업이익률 상단/하단 수평 점선 추가 (실제 최대/최소값 위치에 표시)
                         actual_max = view_df['영업이익률'].max()
                         actual_min = view_df['영업이익률'].min()
 
@@ -651,7 +660,6 @@ if search_btn and company_name and year_month:
                 except Exception as e:
                     status.update(label="❌ 오류 발생", state="error")
                     st.error(f"처리 중 오류가 발생했습니다: {e}")
-                    # 디버깅용: st.exception(e)
 
 elif search_btn and not company_name:
     st.warning("회사명을 입력해주세요.")
