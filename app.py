@@ -458,6 +458,11 @@ st.markdown("""
         flex-direction: column !important;
         justify-content: flex-end !important;
     }
+    /* 테이블 행 높이 조정 */
+    .gt_table tbody tr td {
+        height: 80% !important;
+        padding: 0.4rem 0.6rem !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -575,8 +580,7 @@ if search_btn and company_name and year_month:
                             .tab_style(
                                 style=[
                                     gt.style.fill(color="#ffffff"),
-                                    gt.style.borders(sides=["left", "right"], color="#e0e0e0", weight="1px"),
-                                    gt.style.cell_style(height="80%")
+                                    gt.style.borders(sides=["left", "right"], color="#e0e0e0", weight="1px")
                                 ],
                                 locations=gt.loc.body()
                             )
