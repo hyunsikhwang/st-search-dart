@@ -467,52 +467,50 @@ if search_btn and company_name and year_month:
                         st.divider()
                         st.subheader("📈 Trend Chart")
 
-                        # Plotly를 사용하여 secondary y-axis 추가
+                        # Plotly를 사용하여 차트 생성 (영업이익률: primary y-axis, 매출액/영업이익: secondary y-axis)
                         fig = go.Figure()
 
-                        # Primary Y-axis: 매출액과 영업이익
-                        fig.add_trace(go.Scatter(
-                            x=view_df['기간'],
-                            y=view_df['매출액'],
-                            name='매출액 (백만원)',
-                            mode='lines+markers',
-                            line=dict(color='royalblue', width=2),
-                            marker=dict(size=6)
-                        ))
-
-                        fig.add_trace(go.Scatter(
-                            x=view_df['기간'],
-                            y=view_df['영업이익'],
-                            name='영업이익 (백만원)',
-                            mode='lines+markers',
-                            line=dict(color='firebrick', width=2),
-                            marker=dict(size=6)
-                        ))
-
-                        # Secondary Y-axis: 영업이익률
+                        # Primary Y-axis: 영업이익률 (Line)
                         fig.add_trace(go.Scatter(
                             x=view_df['기간'],
                             y=view_df['영업이익률'],
                             name='영업이익률 (%)',
                             mode='lines+markers',
-                            line=dict(color='green', width=2, dash='dash'),
-                            marker=dict(size=6),
+                            line=dict(color='green', width=3),
+                            marker=dict(size=8),
+                            yaxis='y'
+                        ))
+
+                        # Secondary Y-axis: 매출액 (Bar)
+                        fig.add_trace(go.Bar(
+                            x=view_df['기간'],
+                            y=view_df['매출액'],
+                            name='매출액 (백만원)',
+                            marker=dict(color='royalblue'),
+                            yaxis='y2'
+                        ))
+
+                        # Secondary Y-axis: 영업이익 (Bar)
+                        fig.add_trace(go.Bar(
+                            x=view_df['기간'],
+                            y=view_df['영업이익'],
+                            name='영업이익 (백만원)',
+                            marker=dict(color='firebrick'),
                             yaxis='y2'
                         ))
 
                         # 레이아웃 설정
                         fig.update_layout(
-                            title='재무 추이 (매출액, 영업이익, 영업이익률)',
+                            title='재무 추이 (영업이익률, 매출액, 영업이익)',
                             xaxis=dict(title='기간'),
                             yaxis=dict(
-                                title='금액 (백만원)',
-                                titlefont=dict(color='royalblue'),
-                                tickfont=dict(color='royalblue')
+                                title='영업이익률 (%)',
+                                tickfont=dict(color='green'),
+                                side='left'
                             ),
                             yaxis2=dict(
-                                title='영업이익률 (%)',
-                                titlefont=dict(color='green'),
-                                tickfont=dict(color='green'),
+                                title='금액 (백만원)',
+                                tickfont=dict(color='royalblue'),
                                 overlaying='y',
                                 side='right'
                             ),
@@ -524,6 +522,7 @@ if search_btn and company_name and year_month:
                                 xanchor="right",
                                 x=1
                             ),
+                            barmode='group',
                             margin=dict(l=50, r=50, b=50, t=80, pad=4),
                             height=500
                         )
