@@ -478,33 +478,37 @@ if search_btn and company_name and year_month:
         st.error("기준 연월은 YYYYMM 형식의 6자리 숫자여야 합니다.")
     else:
         with st.status("데이터를 조회하고 있습니다...", expanded=True) as status:
-            st.write("🏢 기업 고유번호 검색 중...")
+            company_search_status = st.empty()
+            company_search_status.write("🏢 기업 고유번호 검색 중...")
             if API_KEY is None:
                 status.update(label="❌ API 키 오류", state="error")
                 st.error("DART API 키가 설정되지 않았습니다.")
             else:
                 corp_code = search_company_code(API_KEY, company_name)
-            
+
             if not corp_code:
                 status.update(label="❌ 회사를 찾을 수 없습니다.", state="error")
                 st.error(f"'{company_name}' 회사를 찾을 수 없습니다.")
             else:
-                st.write(f"✅ 고유번호 확인: {corp_code}")
-                st.write("📥 재무 데이터 수집 및 분석 중...")
-                
+                company_search_status.empty()
+                company_search_status.write(f"✅ 고유번호 확인: {corp_code}")
+                financial_status = st.empty()
+                financial_status.write("📥 재무 데이터 수집 및 분석 중...")
+
                 start_time = time.time()
                 try:
                     raw_df = collect_financials(API_KEY, corp_code, int(year_month))
-                    
+                    financial_status.empty()
+
                     if raw_df.empty:
                         status.update(label="❌ 데이터 없음", state="error")
                         st.warning("해당 기간의 재무 데이터를 찾을 수 없습니다.")
                     else:
                         view_df = process_dataframe_for_view(raw_df)
                         elapsed = time.time() - start_time
-                        
+
                         status.update(label=f"✅ 조회 완료! ({elapsed:.2f}초)", state="complete")
-                        
+
                         st.subheader(f"{company_name} 재무 추이")
 
                         # ==========================================================
@@ -513,10 +517,6 @@ if search_btn and company_name and year_month:
                         # ==========================================================
                         gt_table = (
                             gt.GT(view_df)
-                            .tab_header(
-                                title=f"{company_name} 재무 추이",
-                                subtitle="최근 4년치 재무 데이터"
-                            )
                             .fmt_number(
                                 columns=["매출액", "영업이익"],
                                 decimals=0,
