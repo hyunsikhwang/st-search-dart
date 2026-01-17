@@ -434,8 +434,8 @@ st.markdown("""
         padding: 0.5rem 1rem !important;
     }
     .stMainBlockContainer {
-        padding-top: 0.5rem !important;
-        padding-bottom: 0.5rem !important;
+        padding-top: 3rem !important;
+        padding-bottom: 3rem !important;
     }
     .stTextInput input {
         height: 40px !important;
@@ -445,7 +445,7 @@ st.markdown("""
     }
     .stButton button {
         height: 40px !important;
-        padding: 0.5rem !important;
+        padding: 1rem !important;
         margin: 0 !important;
         box-sizing: border-box !important;
     }
