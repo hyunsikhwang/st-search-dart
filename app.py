@@ -39,8 +39,9 @@ except (FileNotFoundError, KeyError):
 if MD_TOKEN:
     MD_TOKEN = MD_TOKEN.strip()
     # MotherDuck 연결 (토큰이 있으면 md: prefix 사용)
-    # [수정] 토큰에 특수문자가 포함될 수 있으므로 connection logic에서 처리하도록 경로만 설정
-    DB_PATH = "md:dart_financials"
+    # [수정] 특정 DB를 지정해서 연결하면 해당 DB가 없을 때 오류가 발생함.
+    # md: 만 지정하여 연결 후 init_db에서 DB를 생성하거나 선택하도록 함.
+    DB_PATH = "md:"
 else:
     # 로컬 DuckDB 연결
     DB_PATH = "financial_data.duckdb"
@@ -53,6 +54,9 @@ def init_db():
         if MD_TOKEN:
             # MotherDuck 연결 시 토큰을 config로 전달
             conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+            # MotherDuck에서는 DB가 없을 수 있으므로 생성 및 사용 설정
+            conn.execute("CREATE DATABASE IF NOT EXISTS dart_financials")
+            conn.execute("USE dart_financials")
         else:
             conn = duckdb.connect(DB_PATH)
             
@@ -72,9 +76,6 @@ def init_db():
         conn.close()
     except Exception as e:
         st.error(f"데이터베이스 초기화 중 오류가 발생했습니다: {e}")
-        # 로컬 환경이라면 상세 에러 출력
-        if not MD_TOKEN:
-            print(f"DuckDB Connection Error: {e}")
 
 # 앱 실행 시 DB 초기화
 init_db()
@@ -172,6 +173,7 @@ def get_financial_data_from_db(corp_code: str, year: int, report_code: str, fs_d
     try:
         if MD_TOKEN:
             conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+            conn.execute("USE dart_financials")
         else:
             conn = duckdb.connect(DB_PATH)
             
@@ -193,6 +195,7 @@ def save_financial_data_to_db(df: pd.DataFrame, corp_code: str, year: int, quart
     try:
         if MD_TOKEN:
             conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+            conn.execute("USE dart_financials")
         else:
             conn = duckdb.connect(DB_PATH)
             
