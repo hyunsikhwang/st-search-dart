@@ -27,6 +27,9 @@ try:
 except (FileNotFoundError, KeyError):
     API_KEY = os.getenv("DART_API_KEY")
 
+if API_KEY:
+    API_KEY = API_KEY.strip()
+
 # MotherDuck 설정
 try:
     MD_TOKEN = st.secrets["MOTHERDUCK_TOKEN"]
@@ -34,8 +37,10 @@ except (FileNotFoundError, KeyError):
     MD_TOKEN = os.getenv("MOTHERDUCK_TOKEN")
 
 if MD_TOKEN:
+    MD_TOKEN = MD_TOKEN.strip()
     # MotherDuck 연결 (토큰이 있으면 md: prefix 사용)
-    DB_PATH = f"md:dart_financials?motherduck_token={MD_TOKEN}"
+    # [수정] 토큰에 특수문자가 포함될 수 있으므로 connection logic에서 처리하도록 경로만 설정
+    DB_PATH = "md:dart_financials"
 else:
     # 로컬 DuckDB 연결
     DB_PATH = "financial_data.duckdb"
@@ -44,21 +49,32 @@ else:
 # 1. Database 초기화
 # ==========================================
 def init_db():
-    conn = duckdb.connect(DB_PATH)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS cached_financials (
-            corp_code VARCHAR,
-            year INTEGER,
-            quarter INTEGER,
-            report_code VARCHAR,
-            fs_div VARCHAR,
-            account_id VARCHAR,
-            account_nm VARCHAR,
-            thstrm_amount BIGINT,
-            PRIMARY KEY (corp_code, year, report_code, fs_div, account_id)
-        )
-    """)
-    conn.close()
+    try:
+        if MD_TOKEN:
+            # MotherDuck 연결 시 토큰을 config로 전달
+            conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+        else:
+            conn = duckdb.connect(DB_PATH)
+            
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS cached_financials (
+                corp_code VARCHAR,
+                year INTEGER,
+                quarter INTEGER,
+                report_code VARCHAR,
+                fs_div VARCHAR,
+                account_id VARCHAR,
+                account_nm VARCHAR,
+                thstrm_amount BIGINT,
+                PRIMARY KEY (corp_code, year, report_code, fs_div, account_id)
+            )
+        """)
+        conn.close()
+    except Exception as e:
+        st.error(f"데이터베이스 초기화 중 오류가 발생했습니다: {e}")
+        # 로컬 환경이라면 상세 에러 출력
+        if not MD_TOKEN:
+            print(f"DuckDB Connection Error: {e}")
 
 # 앱 실행 시 DB 초기화
 init_db()
@@ -154,7 +170,11 @@ def get_financial_data(api_key: str, corp_code: str, year: int, report_type: str
 
 def get_financial_data_from_db(corp_code: str, year: int, report_code: str, fs_div: str) -> Optional[pd.DataFrame]:
     try:
-        conn = duckdb.connect(DB_PATH)
+        if MD_TOKEN:
+            conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+        else:
+            conn = duckdb.connect(DB_PATH)
+            
         query = """
             SELECT account_id, account_nm, thstrm_amount 
             FROM cached_financials 
@@ -171,7 +191,11 @@ def save_financial_data_to_db(df: pd.DataFrame, corp_code: str, year: int, quart
         return
 
     try:
-        conn = duckdb.connect(DB_PATH)
+        if MD_TOKEN:
+            conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+        else:
+            conn = duckdb.connect(DB_PATH)
+            
         key_items = ['ifrs-full_Revenue', 'dart_OperatingIncomeLoss']
         target_df = df[df['account_id'].isin(key_items)].copy()
         
