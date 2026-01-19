@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 # MotherDuck 설정
 MD_TOKEN = os.getenv("MOTHERDUCK_TOKEN")
-DB_PATH = "md:dart_financials"
+DB_PATH = "md:"
 APP_URL = "https://search-dart.streamlit.app/"
 DEFAULT_PERIOD = "202509" # 기본 기준연월
 BATCH_SIZE = 5 # 한 번에 처리할 회사 수
@@ -14,6 +14,9 @@ def get_unprocessed_companies():
     """아직 처리되지 않은 회사 목록을 가져옵니다."""
     try:
         conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+        conn.execute("CREATE DATABASE IF NOT EXISTS dart_financials")
+        conn.execute("USE dart_financials")
+        
         query = """
             SELECT c.corp_name, c.corp_code 
             FROM corp_codes c
