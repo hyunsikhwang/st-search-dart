@@ -38,7 +38,9 @@ def sync_corp_codes():
                     for corp in root.findall('.//list'):
                         code = corp.findtext('corp_code', '').strip()
                         name = corp.findtext('corp_name', '').strip()
-                        if code and name:
+                        stock = corp.findtext('stock_code', '').strip()
+                        # 주식 코드가 있는(상장사) 경우에만 추가
+                        if code and name and stock:
                             data_list.append((code, name))
             
             if data_list:
