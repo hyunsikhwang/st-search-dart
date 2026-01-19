@@ -186,31 +186,35 @@ def run_automation():
                 
                 print(f"  - Filling company name: {name}", flush=True)
                 main_frame.get_by_label("회사명").fill(name)
+                main_frame.get_by_label("회사명").press("Enter")
                 
                 print(f"  - Filling period: {DEFAULT_PERIOD}", flush=True)
                 main_frame.get_by_label("기준 연월 (YYYYMM)").fill(DEFAULT_PERIOD)
+                main_frame.get_by_label("기준 연월 (YYYYMM)").press("Enter")
                 
                 print("  - Clicking '조회하기' button...", flush=True)
                 main_frame.get_by_role("button", name="조회하기").click()
                 
-                print("  - Waiting for data collection results (30s timeout)...", flush=True)
+                print("  - Waiting for data collection results (40s timeout)...", flush=True)
                 try:
-                    # "조회 완료" 또는 "❌" (에러) 가 포함된 요소가 나타날 때까지 대기
-                    # st.status 등 다양한 요소에서 텍스트를 찾을 수 있도록 제네릭하게 검색
-                    success_selector = 'text="조회 완료"'
-                    error_selector = 'text="❌"'
+                    # 완결성 있는 성공/실패 판단을 위해 여러 지표를 한꺼번에 대기
+                    # 1. "조회 완료" 텍스트 (성공 메시지)
+                    # 2. "[회사명] 재무 추이" 제목 (차트 상단 헤더)
+                    # 3. "❌" (에러 발생 시)
+                    result_locator = main_frame.locator('text="조회 완료", h3:has-text(" 재무 추이"), text="❌"')
+                    result_locator.wait_for(state="visible", timeout=40000)
                     
-                    # 성공 또는 실패 텍스트가 나타날 때까지 대기
-                    main_frame.locator(f'{success_selector}, {error_selector}').wait_for(state="visible", timeout=30000)
+                    # 성공 여부 최종 판정
+                    is_success = main_frame.get_by_text("조회 완료").is_visible() or \
+                                 main_frame.locator('h3:has-text(" 재무 추이")').is_visible()
                     
-                    # 직접 iframe 내의 텍스트가 있는지 확인
-                    if main_frame.get_by_text("조회 완료").is_visible():
+                    if is_success:
                         print(f"  - [Success] Successfully processed {name}", flush=True)
                     else:
                         print(f"  - [Warning] Data not found or error reported by app for {name}", flush=True)
                         update_status_to_not_found(code, name)
                 except Exception as e:
-                    print(f"  - [Timeout/Error] Results did not appear within 30s inside iframe for {name}.", flush=True)
+                    print(f"  - [Timeout/Error] Results did not appear within 40s inside iframe for {name}.", flush=True)
                     update_status_to_not_found(code, name)
                 
                 # 서버 부하 방지를 위해 잠시 대기
