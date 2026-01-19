@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  actions: read
 
 jobs:
   collect:
@@ -33,5 +32,18 @@ jobs:
         MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
       run: python -u automation.py
 
-    - name: Keepalive Workflow
-      uses: gautamkrishnar/keepalive-workflow@v2
+    - name: Keepalive (Anti-disable)
+      run: |
+        git config --global user.name "GitHub Action Bot"
+        git config --global user.email "action@github.com"
+        
+        # 50일 이상 커밋이 없으면 빈 커밋 생성 (GitHub 60일 비활성화 방지)
+        last_commit_date=$(git log -1 --format=%ct)
+        limit_date=$(date -d "50 days ago" +%s)
+        
+        if [ $last_commit_date -lt $limit_date ]; then
+          git commit --allow-empty -m "Keepalive commit to prevent workflow disable"
+          git push
+        else
+          echo "No keepalive needed yet."
+        fi
