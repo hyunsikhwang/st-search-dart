@@ -41,7 +41,7 @@ def sync_corp_codes():
                         stock = corp.findtext('stock_code', '').strip()
                         # 주식 코드가 있는(상장사) 경우에만 추가
                         if code and name and stock:
-                            data_list.append((code, name))
+                            data_list.append((code, name, stock))
             
             if data_list:
                 conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
@@ -51,12 +51,19 @@ def sync_corp_codes():
                     CREATE TABLE IF NOT EXISTS corp_codes (
                         corp_code VARCHAR PRIMARY KEY,
                         corp_name VARCHAR,
+                        stock_code VARCHAR,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
+                # [수정] 스키마 변경 시 컬럼 추가를 위해 처리
+                try:
+                    conn.execute("ALTER TABLE corp_codes ADD COLUMN IF NOT EXISTS stock_code VARCHAR")
+                except:
+                    pass
+
                 conn.executemany("""
-                    INSERT OR REPLACE INTO corp_codes (corp_code, corp_name, updated_at)
-                    VALUES (?, ?, CURRENT_TIMESTAMP)
+                    INSERT OR REPLACE INTO corp_codes (corp_code, corp_name, stock_code, updated_at)
+                    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
                 """, data_list)
                 conn.close()
                 print(f"Successfully synced {len(data_list)} corp codes.")
@@ -80,9 +87,15 @@ def get_unprocessed_companies():
             CREATE TABLE IF NOT EXISTS corp_codes (
                 corp_code VARCHAR PRIMARY KEY,
                 corp_name VARCHAR,
+                stock_code VARCHAR,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        # [수정] 스키마 변경 시 컬럼 추가를 위해 처리
+        try:
+            conn.execute("ALTER TABLE corp_codes ADD COLUMN IF NOT EXISTS stock_code VARCHAR")
+        except:
+            pass
         conn.execute("""
             CREATE TABLE IF NOT EXISTS processing_status (
                 corp_code VARCHAR,
