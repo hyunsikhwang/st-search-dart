@@ -139,6 +139,20 @@ def get_unprocessed_companies():
         print(f"[Database Error] {e}", flush=True)
         return []
 
+def update_status_to_not_found(corp_code, corp_name):
+    """실패한 경우(성공 외) 상태를 NOT_FOUND로 기록합니다."""
+    try:
+        conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+        conn.execute("USE dart_financials")
+        conn.execute("""
+            INSERT OR REPLACE INTO processing_status (corp_code, corp_name, last_base_period, status, processed_at)
+            VALUES (?, ?, ?, 'NOT_FOUND', CURRENT_TIMESTAMP)
+        """, [corp_code, corp_name, DEFAULT_PERIOD])
+        conn.close()
+        print(f"  - [Fallback] Status recorded as NOT_FOUND for {corp_name}", flush=True)
+    except Exception as e:
+        print(f"  - [Error] Failed to record fallback status: {e}", flush=True)
+
 def run_automation():
     print("--- Starting Automation Script ---", flush=True)
     companies = get_unprocessed_companies()
@@ -161,16 +175,14 @@ def run_automation():
 
             try:
                 print(f"  - Navigating to {APP_URL}...", flush=True)
-                page.goto(APP_URL, wait_until="networkidle", timeout=60000)
+                page.goto(APP_URL, wait_until="networkidle", timeout=30000)
                 
                 print("  - Locating Streamlit iframe...", flush=True)
-                # Streamlit Cloud는 보통 메인 컨텐츠를 iframe 안에 둠
                 main_frame = page.frame_locator('iframe[title="streamlitApp"]')
                 
-                print("  - Waiting for Streamlit UI to load inside iframe...", flush=True)
-                # iframe 내부에서 인풋 박스가 나타날 때까지 대기
+                print("  - Waiting for Streamlit UI to load inside iframe (30s timeout)...", flush=True)
                 input_selector = 'input[aria-label="회사명"]'
-                main_frame.locator(input_selector).wait_for(state="visible", timeout=60000)
+                main_frame.locator(input_selector).wait_for(state="visible", timeout=30000)
                 
                 print(f"  - Filling company name: {name}", flush=True)
                 main_frame.get_by_label("회사명").fill(name)
@@ -181,40 +193,33 @@ def run_automation():
                 print("  - Clicking '조회하기' button...", flush=True)
                 main_frame.get_by_role("button", name="조회하기").click()
                 
-                print("  - Waiting for data collection to complete...", flush=True)
-                # iframe 내부의 텍스트 변화를 감지해야 함
-                # wait_for_function은 page 단위이므로, 텍스트가 전체 페이지에 나타나는지 확인
-                page.wait_for_function("""
-                    () => {
-                        const texts = document.body.innerText;
-                        return texts.includes("조회 완료") || texts.includes("❌") || texts.includes("데이터를 조회하고 있습니다");
-                    }
-                """, timeout=60000)
-
-                # 실제 완료까지 조금 더 대기
-                page.wait_for_function("""
-                    () => {
-                        const texts = document.body.innerText;
-                        return texts.includes("조회 완료") || texts.includes("❌");
-                    }
-                """, timeout=60000)
-                
-                page_content = page.content()
-                if "조회 완료" in page_content:
-                    print(f"  - [Success] Successfully processed {name}", flush=True)
-                elif "❌" in page_content:
-                    print(f"  - [Warning] App reported an error for {name}. Data might be missing.", flush=True)
-                else:
-                    print(f"  - [Error] Could not confirm completion for {name}", flush=True)
+                print("  - Waiting for data collection results (30s timeout)...", flush=True)
+                try:
+                    page.wait_for_function("""
+                        () => {
+                            const texts = document.body.innerText;
+                            return texts.includes("조회 완료") || texts.includes("❌");
+                        }
+                    """, timeout=30000)
+                    
+                    page_content = page.content()
+                    if "조회 완료" in page_content:
+                        print(f"  - [Success] Successfully processed {name}", flush=True)
+                    else:
+                        print(f"  - [Warning] Data not found or error occurred for {name}", flush=True)
+                        # 앱 내부에서 NOT_FOUND를 기록했겠지만, 만일을 대비해 스크립트에서도 확인/기록
+                        update_status_to_not_found(code, name)
+                except Exception as te:
+                    print(f"  - [Timeout/Error] Results did not appear within 30s for {name}: {te}", flush=True)
+                    update_status_to_not_found(code, name)
                 
                 # 서버 부하 방지를 위해 잠시 대기
                 print("  - Cooling down for 5 seconds...", flush=True)
                 time.sleep(5)
                 
             except Exception as e:
-                print(f"  - [Critical Error] Failed to process {name}: {e}", flush=True)
-                # 실패 상황 캡처를 위해 에러 로그 출력 시점의 스크린샷은 action artifact에는 안남지만 로컬에선 유용
-                # page.screenshot(path=f"error_{code}.png")
+                print(f"  - [Critical Error] Global failure for {name}: {e}", flush=True)
+                update_status_to_not_found(code, name)
 
         print("\n[Playwright] Closing browser...", flush=True)
         browser.close()
