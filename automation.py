@@ -195,22 +195,21 @@ def run_automation():
                 
                 print("  - Waiting for data collection results (30s timeout)...", flush=True)
                 try:
-                    page.wait_for_function("""
-                        () => {
-                            const texts = document.body.innerText;
-                            return texts.includes("조회 완료") || texts.includes("❌");
-                        }
-                    """, timeout=30000)
+                    # iframe 내부의 텍스트가 바뀔 때까지 대기
+                    # "조회 완료" 또는 "❌" 가 포함된 p 태그가 나타나는지 확인
+                    result_locator = main_frame.locator('p:has-text("조회 완료"), p:has-text("❌")')
+                    result_locator.wait_for(state="visible", timeout=30000)
                     
+                    # 텍스트 확인 (더 정확한 로깅을 위해)
+                    # iframe 내부의 컨텐츠가 포함된 page.content()에서 성공 여부 판단
                     page_content = page.content()
                     if "조회 완료" in page_content:
                         print(f"  - [Success] Successfully processed {name}", flush=True)
                     else:
-                        print(f"  - [Warning] Data not found or error occurred for {name}", flush=True)
-                        # 앱 내부에서 NOT_FOUND를 기록했겠지만, 만일을 대비해 스크립트에서도 확인/기록
+                        print(f"  - [Warning] Data not found or error reported by app for {name}", flush=True)
                         update_status_to_not_found(code, name)
                 except Exception as te:
-                    print(f"  - [Timeout/Error] Results did not appear within 30s for {name}: {te}", flush=True)
+                    print(f"  - [Timeout/Error] Results did not appear within 30s inside iframe for {name}.", flush=True)
                     update_status_to_not_found(code, name)
                 
                 # 서버 부하 방지를 위해 잠시 대기
