@@ -29,4 +29,4 @@ jobs:
         env:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
-        run: python automation.py
+        run: python -u automation.py
