@@ -113,38 +113,41 @@ def get_unprocessed_companies():
         return []
 
 def run_automation():
+    print("--- Starting Automation Script ---")
     companies = get_unprocessed_companies()
     if not companies:
-        print("No unprocessed companies found.")
+        print("[Status] No unprocessed companies found. Everything is up to date.")
         return
 
-    print(f"Processing {len(companies)} companies...")
+    print(f"[Status] Found {len(companies)} companies to process.")
 
     with sync_playwright() as p:
+        print("[Playwright] Launching browser...")
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
 
-        for company in companies:
+        for i, company in enumerate(companies):
             name = company['corp_name']
             code = company['corp_code']
-            print(f"Searching for: {name} ({code})")
+            print(f"\n[{i+1}/{len(companies)}] Processing: {name} ({code})")
 
             try:
+                print(f"  - Navigating to {APP_URL}...")
                 page.goto(APP_URL)
-                # Streamlit 로딩 대기
+                
+                print("  - Waiting for Streamlit UI to load...")
                 page.wait_for_selector('div[data-testid="stTextInput"]', timeout=30000)
                 
-                # 입력 필드 찾기 및 입력
+                print(f"  - Filling company name: {name}")
                 page.get_by_label("회사명").fill(name)
                 
-                # 기준 연월 입력 (기본값 202509)
+                print(f"  - Filling period: {DEFAULT_PERIOD}")
                 page.get_by_label("기준 연월 (YYYYMM)").fill(DEFAULT_PERIOD)
                 
-                # 조회하기 버튼 클릭
+                print("  - Clicking '조회하기' button...")
                 page.get_by_role("button", name="조회하기").click()
                 
-                # 결과가 나올 때까지 대기 (상태 메시지 변화 확인)
-                # "✅ 조회 완료!" 또는 "❌" 가 포함된 텍스트가 나타날 때까지 대기
+                print("  - Waiting for data collection to complete (this may take a while)...")
                 # st.status 내부의 텍스트를 감지함
                 page.wait_for_function("""
                     () => {
@@ -153,18 +156,24 @@ def run_automation():
                     }
                 """, timeout=90000)
                 
-                if "조회 완료" in page.content():
-                    print(f"Successfully processed {name}")
+                page_content = page.content()
+                if "조회 완료" in page_content:
+                    print(f"  - [Success] Successfully processed {name}")
+                elif "❌" in page_content:
+                    print(f"  - [Warning] App reported an error for {name}. It might have no data for this period.")
                 else:
-                    print(f"Failed to process {name}: Data not found or error occurred")
+                    print(f"  - [Error] Unexpected state for {name}")
                 
                 # 서버 부하 방지를 위해 잠시 대기
+                print("  - Cooling down for 5 seconds...")
                 time.sleep(5)
                 
             except Exception as e:
-                print(f"Failed to process {name}: {e}")
+                print(f"  - [Critical Error] Failed to process {name}: {e}")
 
+        print("\n[Playwright] Closing browser...")
         browser.close()
+    print("--- Automation Task Finished ---")
 
 if __name__ == "__main__":
     if not MD_TOKEN:
