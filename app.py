@@ -60,6 +60,7 @@ def init_db():
         else:
             conn = duckdb.connect(DB_PATH)
             
+        # 재무정보 테이블
         conn.execute("""
             CREATE TABLE IF NOT EXISTS cached_financials (
                 corp_code VARCHAR,
@@ -73,6 +74,26 @@ def init_db():
                 PRIMARY KEY (corp_code, year, report_code, fs_div, account_id)
             )
         """)
+
+        # 회사 고유번호 테이블
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS corp_codes (
+                corp_code VARCHAR PRIMARY KEY,
+                corp_name VARCHAR,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # 처리 상태 테이블
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS processing_status (
+                corp_code VARCHAR,
+                corp_name VARCHAR,
+                last_base_period VARCHAR,
+                processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (corp_code)
+            )
+        """)
         conn.close()
     except Exception as e:
         st.error(f"데이터베이스 초기화 중 오류가 발생했습니다: {e}")
@@ -84,12 +105,8 @@ init_db()
 # 2. DART 고유번호(Corp Code) 관리 (Cached)
 # ==========================================
 
-@st.cache_data(ttl=3600*24)  # 24시간 캐시
-def get_company_codes(api_key: str) -> Optional[Dict[str, str]]:
-    """
-    Open DART에서 고유번호(8자리)를 받아와 딕셔너리로 반환합니다.
-    Streamlit Cache를 사용하여 매번 다운로드하지 않도록 최적화합니다.
-    """
+def sync_corp_codes_from_api(api_key: str):
+    """Open DART에서 고유번호를 다운로드하여 DB에 저장합니다."""
     url = "https://opendart.fss.or.kr/api/corpCode.xml"
     params = {'crtfc_key': api_key}
 
@@ -107,14 +124,55 @@ def get_company_codes(api_key: str) -> Optional[Dict[str, str]]:
                         code = corp.findtext('corp_code', '').strip()
                         name = corp.findtext('corp_name', '').strip()
                         if code and name:
-                            data_list.append({'corp_name': name, 'corp_code': code})
+                            data_list.append((code, name))
 
             if data_list:
-                df = pd.DataFrame(data_list)
-                return df.set_index('corp_name')['corp_code'].to_dict()
+                if MD_TOKEN:
+                    conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+                    conn.execute("USE dart_financials")
+                else:
+                    conn = duckdb.connect(DB_PATH)
+                
+                conn.executemany("""
+                    INSERT OR REPLACE INTO corp_codes (corp_code, corp_name, updated_at)
+                    VALUES (?, ?, CURRENT_TIMESTAMP)
+                """, data_list)
+                conn.close()
+                return True
+        return False
+    except Exception as e:
+        st.error(f"고유번호 동기화 실패: {e}")
+        return False
+
+@st.cache_data(ttl=3600*24)  # 24시간 캐시
+def get_company_codes(api_key: str) -> Optional[Dict[str, str]]:
+    """DB에서 고유번호를 읽어옵니다. DB에 없으면 API를 호출합니다."""
+    try:
+        if MD_TOKEN:
+            conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+            conn.execute("USE dart_financials")
+        else:
+            conn = duckdb.connect(DB_PATH)
+        
+        df = conn.execute("SELECT corp_name, corp_code FROM corp_codes").df()
+        conn.close()
+
+        if df.empty:
+            # DB가 비어있으면 API 호출 시도
+            if sync_corp_codes_from_api(api_key):
+                if MD_TOKEN:
+                    conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+                    conn.execute("USE dart_financials")
+                else:
+                    conn = duckdb.connect(DB_PATH)
+                df = conn.execute("SELECT corp_name, corp_code FROM corp_codes").df()
+                conn.close()
+        
+        if not df.empty:
+            return df.set_index('corp_name')['corp_code'].to_dict()
         return None
     except Exception as e:
-        st.error(f"고유번호 다운로드 실패: {e}")
+        st.error(f"고유번호 로드 실패: {e}")
         return None
 
 def search_company_code(api_key: str, company_name: str) -> Optional[str]:
@@ -401,7 +459,35 @@ def collect_financials(api_key: str, corp_code: str, year_month: int) -> pd.Data
     filtered['항목'] = filtered['account_id'].map(item_map)
 
     # Q4 조정
-    return adjust_q4_values(filtered)
+    result_df = adjust_q4_values(filtered)
+    
+    if not result_df.empty:
+        # 처리 상태 업데이트
+        try:
+            if MD_TOKEN:
+                conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+                conn.execute("USE dart_financials")
+            else:
+                conn = duckdb.connect(DB_PATH)
+            
+            # 회사명 가져오기
+            codes_dict = get_company_codes(api_key)
+            company_name_found = "알수없음"
+            if codes_dict:
+                for name, code in codes_dict.items():
+                    if code == corp_code:
+                        company_name_found = name
+                        break
+
+            conn.execute("""
+                INSERT OR REPLACE INTO processing_status (corp_code, corp_name, last_base_period, processed_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            """, [corp_code, company_name_found, str(year_month)])
+            conn.close()
+        except Exception:
+            pass
+
+    return result_df
 
 def process_dataframe_for_view(df: pd.DataFrame) -> pd.DataFrame:
     """Streamlit 표시용 데이터프레임으로 변환"""
@@ -513,6 +599,15 @@ with st.form(key="search_form"):
 
 st.markdown("---")
 st.caption("Data source: Open DART API")
+
+with st.expander("⚙️ 설정"):
+    if st.button("🔄 회사 고유번호(corpCode.xml) 강제 갱신"):
+        with st.spinner("Open DART에서 데이터를 가져오고 있습니다..."):
+            if sync_corp_codes_from_api(API_KEY):
+                st.success("회사 고유번호가 성공적으로 업데이트되었습니다.")
+                st.cache_data.clear()
+            else:
+                st.error("회사 고유번호 업데이트에 실패했습니다.")
 
 if search_btn and company_name and year_month:
     if not year_month.isdigit() or len(year_month) != 6:

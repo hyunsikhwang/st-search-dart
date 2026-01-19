@@ -5,3 +5,4 @@ duckdb
 lxml
 plotly
 great-tables
+playwright
