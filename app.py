@@ -91,6 +91,7 @@ def init_db():
                 corp_code VARCHAR,
                 corp_name VARCHAR,
                 last_base_period VARCHAR,
+                status VARCHAR DEFAULT 'SUCCESS',
                 processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (corp_code)
             )
@@ -471,31 +472,39 @@ def collect_financials(api_key: str, corp_code: str, year_month: int) -> pd.Data
     # Q4 조정
     result_df = adjust_q4_values(filtered)
     
-    if not result_df.empty:
-        # 처리 상태 업데이트
+    # 처리 상태 업데이트 (데이터가 있든 없든 시도 기록)
+    try:
+        if MD_TOKEN:
+            conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+            conn.execute("USE dart_financials")
+        else:
+            conn = duckdb.connect(DB_PATH)
+        
+        # [수정] 스키마 변경 시 컬럼 추가
         try:
-            if MD_TOKEN:
-                conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
-                conn.execute("USE dart_financials")
-            else:
-                conn = duckdb.connect(DB_PATH)
-            
-            # 회사명 가져오기
-            codes_dict = get_company_codes(api_key)
-            company_name_found = "알수없음"
-            if codes_dict:
-                for name, code in codes_dict.items():
-                    if code == corp_code:
-                        company_name_found = name
-                        break
-
-            conn.execute("""
-                INSERT OR REPLACE INTO processing_status (corp_code, corp_name, last_base_period, processed_at)
-                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-            """, [corp_code, company_name_found, str(year_month)])
-            conn.close()
-        except Exception:
+            conn.execute("ALTER TABLE processing_status ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'SUCCESS'")
+        except:
             pass
+
+        # 회사명 가져오기
+        codes_dict = get_company_codes(api_key)
+        company_name_found = "알수없음"
+        if codes_dict:
+            for name, code in codes_dict.items():
+                if code == corp_code:
+                    company_name_found = name
+                    break
+
+        # 데이터 존재 여부에 따른 상태 설정
+        current_status = 'SUCCESS' if not result_df.empty else 'NOT_FOUND'
+
+        conn.execute("""
+            INSERT OR REPLACE INTO processing_status (corp_code, corp_name, last_base_period, status, processed_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        """, [corp_code, company_name_found, str(year_month), current_status])
+        conn.close()
+    except Exception:
+        pass
 
     return result_df
 

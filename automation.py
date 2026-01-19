@@ -103,10 +103,16 @@ def get_unprocessed_companies():
                 corp_code VARCHAR,
                 corp_name VARCHAR,
                 last_base_period VARCHAR,
+                status VARCHAR DEFAULT 'SUCCESS',
                 processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (corp_code)
             )
         """)
+        # [수정] 스키마 변경 시 컬럼 추가를 위해 처리
+        try:
+            conn.execute("ALTER TABLE processing_status ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'SUCCESS'")
+        except:
+            pass
         
         # 데이터가 있는지 확인
         count = conn.execute("SELECT count(*) FROM corp_codes").fetchone()[0]
