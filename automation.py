@@ -1,6 +1,7 @@
 import os
 import duckdb
 import time
+import pandas as pd
 from playwright.sync_api import sync_playwright
 
 # 설정
@@ -44,6 +45,9 @@ def sync_corp_codes():
                             data_list.append((code, name, stock))
             
             if data_list:
+                print(f"[Database] Preparing to insert {len(data_list)} records...", flush=True)
+                df = pd.DataFrame(data_list, columns=['corp_code', 'corp_name', 'stock_code'])
+                
                 conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
                 conn.execute("CREATE DATABASE IF NOT EXISTS dart_financials")
                 conn.execute("USE dart_financials")
@@ -61,12 +65,10 @@ def sync_corp_codes():
                 except:
                     pass
 
-                conn.executemany("""
-                    INSERT OR REPLACE INTO corp_codes (corp_code, corp_name, stock_code, updated_at)
-                    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-                """, data_list)
+                print("[Database] Executing bulk insert (INSERT OR REPLACE)...", flush=True)
+                conn.execute("INSERT OR REPLACE INTO corp_codes (corp_code, corp_name, stock_code) SELECT corp_code, corp_name, stock_code FROM df")
                 conn.close()
-                print(f"Successfully synced {len(data_list)} corp codes.")
+                print(f"[Database] Successfully synced {len(data_list)} corp codes.", flush=True)
                 return True
         return False
     except Exception as e:

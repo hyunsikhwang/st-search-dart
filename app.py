@@ -130,6 +130,9 @@ def sync_corp_codes_from_api(api_key: str):
                             data_list.append((code, name, stock))
 
             if data_list:
+                # 리스트를 DataFrame으로 변환 (성공적인 벌크 삽입을 위해)
+                df = pd.DataFrame(data_list, columns=['corp_code', 'corp_name', 'stock_code'])
+                
                 if MD_TOKEN:
                     conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
                     conn.execute("USE dart_financials")
@@ -142,10 +145,8 @@ def sync_corp_codes_from_api(api_key: str):
                 except:
                     pass
 
-                conn.executemany("""
-                    INSERT OR REPLACE INTO corp_codes (corp_code, corp_name, stock_code, updated_at)
-                    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-                """, data_list)
+                # DuckDB의 강력한 기능을 활용해 DataFrame을 직접 테이블에 삽입 (매우 빠름)
+                conn.execute("INSERT OR REPLACE INTO corp_codes (corp_code, corp_name, stock_code) SELECT corp_code, corp_name, stock_code FROM df")
                 conn.close()
                 return True
         return False
