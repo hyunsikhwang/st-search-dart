@@ -183,7 +183,7 @@ def run_automation():
                         const texts = document.body.innerText;
                         return texts.includes("조회 완료") || texts.includes("❌") || texts.includes("데이터를 조회하고 있습니다");
                     }
-                """, timeout=90000)
+                """, timeout=60000)
 
                 # 실제 완료까지 조금 더 대기
                 page.wait_for_function("""
