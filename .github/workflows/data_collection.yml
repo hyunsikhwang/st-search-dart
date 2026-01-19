@@ -5,11 +5,13 @@ on:
     - cron: '*/30 * * * *'  # 30분마다 실행
   workflow_dispatch:        # 수동 실행 허용
 
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   collect:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     
     steps:
     - uses: actions/checkout@v4
