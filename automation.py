@@ -195,20 +195,21 @@ def run_automation():
                 
                 print("  - Waiting for data collection results (30s timeout)...", flush=True)
                 try:
-                    # iframe 내부의 텍스트가 바뀔 때까지 대기
-                    # "조회 완료" 또는 "❌" 가 포함된 p 태그가 나타나는지 확인
-                    result_locator = main_frame.locator('p:has-text("조회 완료"), p:has-text("❌")')
-                    result_locator.wait_for(state="visible", timeout=30000)
+                    # "조회 완료" 또는 "❌" (에러) 가 포함된 요소가 나타날 때까지 대기
+                    # st.status 등 다양한 요소에서 텍스트를 찾을 수 있도록 제네릭하게 검색
+                    success_selector = 'text="조회 완료"'
+                    error_selector = 'text="❌"'
                     
-                    # 텍스트 확인 (더 정확한 로깅을 위해)
-                    # iframe 내부의 컨텐츠가 포함된 page.content()에서 성공 여부 판단
-                    page_content = page.content()
-                    if "조회 완료" in page_content:
+                    # 성공 또는 실패 텍스트가 나타날 때까지 대기
+                    main_frame.locator(f'{success_selector}, {error_selector}').wait_for(state="visible", timeout=30000)
+                    
+                    # 직접 iframe 내의 텍스트가 있는지 확인
+                    if main_frame.get_by_text("조회 완료").is_visible():
                         print(f"  - [Success] Successfully processed {name}", flush=True)
                     else:
                         print(f"  - [Warning] Data not found or error reported by app for {name}", flush=True)
                         update_status_to_not_found(code, name)
-                except Exception as te:
+                except Exception as e:
                     print(f"  - [Timeout/Error] Results did not appear within 30s inside iframe for {name}.", flush=True)
                     update_status_to_not_found(code, name)
                 
