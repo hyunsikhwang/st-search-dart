@@ -192,7 +192,7 @@ def run_automation():
                 print("  - Clicking '조회하기' button...", flush=True)
                 page.get_by_role("button", name="조회하기").click()
                 
-                print("  - Waiting for data collection results (90s timeout)...", flush=True)
+                print("  - Waiting for data collection results (60s timeout)...", flush=True)
                 try:
                     # 완결성 있는 성공/실패 판단을 위해 여러 지표를 한꺼번에 대기
                     # 1. "조회 완료" 텍스트 (st.status가 완료된 상태)
@@ -204,7 +204,7 @@ def run_automation():
                     error_selector = 'text="❌", text="데이터를 찾을 수 없습니다", text="회사를 찾을 수 없습니다"'
                     
                     result_locator = page.locator(f'{success_selector}, {error_selector}')
-                    result_locator.wait_for(state="visible", timeout=90000)
+                    result_locator.wait_for(state="visible", timeout=60000)
                     
                     # 성공 여부 최종 판정
                     is_success = page.locator(success_selector).first.is_visible()
@@ -216,7 +216,7 @@ def run_automation():
                         print(f"  - [Warning] Data not found or error reported by app for {name}: {error_text}", flush=True)
                         update_status_to_not_found(code, name)
                 except Exception as e:
-                    print(f"  - [Timeout/Error] Results did not appear within 90s for {name}. Error: {e}", flush=True)
+                    print(f"  - [Timeout/Error] Results did not appear within 60s for {name}. Error: {e}", flush=True)
                     update_status_to_not_found(code, name)
                 
                 # 서버 부하 방지를 위해 잠시 대기
