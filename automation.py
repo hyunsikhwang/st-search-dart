@@ -217,7 +217,7 @@ def run_automation():
                     for loc in success_indicators[1:] + error_indicators:
                         combined_locator = combined_locator.or_(loc)
                     
-                    combined_locator.wait_for(state="visible", timeout=90000)
+                    combined_locator.wait_for(state="visible", timeout=60000)
                     
                     # 성공 여부 최종 판정
                     is_success = any(loc.is_visible() for loc in success_indicators)
@@ -234,7 +234,7 @@ def run_automation():
                         print(f"  - [Warning] Data not found or error reported by app for {name}: {error_msg}", flush=True)
                         update_status_to_not_found(code, name)
                 except Exception as e:
-                    print(f"  - [Timeout/Error] Results did not appear within 90s for {name}. Error: {e}", flush=True)
+                    print(f"  - [Timeout/Error] Results did not appear within 60s for {name}. Error: {e}", flush=True)
                     update_status_to_not_found(code, name)
                 
                 # 서버 부하 방지를 위해 잠시 대기
