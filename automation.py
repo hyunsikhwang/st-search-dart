@@ -8,7 +8,7 @@ from playwright.sync_api import sync_playwright
 MD_TOKEN = os.getenv("MOTHERDUCK_TOKEN")
 API_KEY = os.getenv("DART_API_KEY")
 DB_PATH = "md:"
-APP_URL = "https://search-dart.streamlit.app/"
+APP_URL = "https://search-dart.streamlit.app/~/+/"
 DEFAULT_PERIOD = "202509" # 기본 기준연월
 BATCH_SIZE = 5 # 한 번에 처리할 회사 수
 
@@ -177,23 +177,22 @@ def run_automation():
                 print(f"  - Navigating to {APP_URL}...", flush=True)
                 page.goto(APP_URL, wait_until="networkidle", timeout=30000)
                 
-                print("  - Locating Streamlit iframe...", flush=True)
-                main_frame = page.frame_locator('iframe[title="streamlitApp"]')
-                
-                print("  - Waiting for Streamlit UI to load inside iframe (30s timeout)...", flush=True)
+                print("  - Waiting for Streamlit UI to load (30s timeout)...", flush=True)
                 input_selector = 'input[aria-label="회사명"]'
-                main_frame.locator(input_selector).wait_for(state="visible", timeout=30000)
+                page.locator(input_selector).wait_for(state="visible", timeout=30000)
                 
                 print(f"  - Filling company name: {name}", flush=True)
-                main_frame.get_by_label("회사명").fill(name)
+                page.get_by_label("회사명").fill(name)
+                page.get_by_label("회사명").press("Tab") # Ensure state sync
                 
                 print(f"  - Filling period: {DEFAULT_PERIOD}", flush=True)
-                main_frame.get_by_label("기준 연월 (YYYYMM)").fill(DEFAULT_PERIOD)
+                page.get_by_label("기준 연월 (YYYYMM)").fill(DEFAULT_PERIOD)
+                page.get_by_label("기준 연월 (YYYYMM)").press("Tab") # Ensure state sync
                 
                 print("  - Clicking '조회하기' button...", flush=True)
-                main_frame.get_by_role("button", name="조회하기").click()
+                page.get_by_role("button", name="조회하기").click()
                 
-                print("  - Waiting for data collection results (60s timeout)...", flush=True)
+                print("  - Waiting for data collection results (90s timeout)...", flush=True)
                 try:
                     # 완결성 있는 성공/실패 판단을 위해 여러 지표를 한꺼번에 대기
                     # 1. "조회 완료" 텍스트 (st.status가 완료된 상태)
@@ -204,20 +203,20 @@ def run_automation():
                     success_selector = 'text="조회 완료", h3:has-text("재무 추이"), h3:has-text("Trend Chart"), [data-testid="stStatus"]:has-text("조회 완료")'
                     error_selector = 'text="❌", text="데이터를 찾을 수 없습니다", text="회사를 찾을 수 없습니다"'
                     
-                    result_locator = main_frame.locator(f'{success_selector}, {error_selector}')
-                    result_locator.wait_for(state="visible", timeout=60000)
+                    result_locator = page.locator(f'{success_selector}, {error_selector}')
+                    result_locator.wait_for(state="visible", timeout=90000)
                     
                     # 성공 여부 최종 판정
-                    is_success = main_frame.locator(success_selector).first.is_visible()
+                    is_success = page.locator(success_selector).first.is_visible()
                     
                     if is_success:
                         print(f"  - [Success] Successfully processed {name}", flush=True)
                     else:
-                        error_text = main_frame.locator(error_selector).first.inner_text() if main_frame.locator(error_selector).first.is_visible() else "Unknown Error"
+                        error_text = page.locator(error_selector).first.inner_text() if page.locator(error_selector).first.is_visible() else "Unknown Error"
                         print(f"  - [Warning] Data not found or error reported by app for {name}: {error_text}", flush=True)
                         update_status_to_not_found(code, name)
                 except Exception as e:
-                    print(f"  - [Timeout/Error] Results did not appear within 60s inside iframe for {name}. Error: {e}", flush=True)
+                    print(f"  - [Timeout/Error] Results did not appear within 90s for {name}. Error: {e}", flush=True)
                     update_status_to_not_found(code, name)
                 
                 # 서버 부하 방지를 위해 잠시 대기
