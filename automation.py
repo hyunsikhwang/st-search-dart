@@ -183,40 +183,58 @@ def run_automation():
                 
                 print(f"  - Filling company name: {name}", flush=True)
                 page.get_by_label("회사명").fill(name)
-                page.get_by_label("회사명").press("Tab") # Ensure state sync
+                page.get_by_label("회사명").press("Enter")
                 
                 print(f"  - Filling period: {DEFAULT_PERIOD}", flush=True)
                 page.get_by_label("기준 연월 (YYYYMM)").fill(DEFAULT_PERIOD)
-                page.get_by_label("기준 연월 (YYYYMM)").press("Tab") # Ensure state sync
+                page.get_by_label("기준 연월 (YYYYMM)").press("Enter")
                 
                 print("  - Clicking '조회하기' button...", flush=True)
-                page.get_by_role("button", name="조회하기").click()
+                # Enter를 누르면 바로 제출될 수 있지만, 명시적으로 버튼을 클릭하여 확실히 처리
+                try:
+                    page.get_by_role("button", name="조회하기").click(timeout=2000)
+                except:
+                    pass
                 
-                print("  - Waiting for data collection results (60s timeout)...", flush=True)
+                print("  - Waiting for data collection results (90s timeout)...", flush=True)
                 try:
                     # 완결성 있는 성공/실패 판단을 위해 여러 지표를 한꺼번에 대기
-                    # 1. "조회 완료" 텍스트 (st.status가 완료된 상태)
-                    # 2. "[회사명] 재무 추이" 또는 "Trend Chart" (차트 소제목 또는 헤더)
-                    # 3. "❌" (에러 발생 시) 또는 "데이터 없음"
-                    # 4. "stStatus" test-id를 가진 요소의 변화
+                    # text=... 대신 :has-text(...) 를 사용하여 부분 일치 허용 (이모지, 동적 텍스트 대응)
+                    success_indicators = [
+                        page.locator('div[data-testid="stStatus"]:has-text("조회 완료")'),
+                        page.locator('h3:has-text("재무 추이")'),
+                        page.locator('h3:has-text("Trend Chart")')
+                    ]
                     
-                    success_selector = 'text="조회 완료", h3:has-text("재무 추이"), h3:has-text("Trend Chart"), [data-testid="stStatus"]:has-text("조회 완료")'
-                    error_selector = 'text="❌", text="데이터를 찾을 수 없습니다", text="회사를 찾을 수 없습니다"'
+                    error_indicators = [
+                        page.locator(':has-text("❌")'),
+                        page.locator(':has-text("데이터를 찾을 수 없습니다")'),
+                        page.locator(':has-text("회사를 찾을 수 없습니다")')
+                    ]
                     
-                    result_locator = page.locator(f'{success_selector}, {error_selector}')
-                    result_locator.wait_for(state="visible", timeout=60000)
+                    # 모든 지표를 하나로 합침
+                    combined_locator = success_indicators[0]
+                    for loc in success_indicators[1:] + error_indicators:
+                        combined_locator = combined_locator.or_(loc)
+                    
+                    combined_locator.wait_for(state="visible", timeout=90000)
                     
                     # 성공 여부 최종 판정
-                    is_success = page.locator(success_selector).first.is_visible()
+                    is_success = any(loc.is_visible() for loc in success_indicators)
                     
                     if is_success:
                         print(f"  - [Success] Successfully processed {name}", flush=True)
                     else:
-                        error_text = page.locator(error_selector).first.inner_text() if page.locator(error_selector).first.is_visible() else "Unknown Error"
-                        print(f"  - [Warning] Data not found or error reported by app for {name}: {error_text}", flush=True)
+                        # 에러 메시지 추출 시도
+                        error_msg = "Unknown Error"
+                        for loc in error_indicators:
+                            if loc.is_visible():
+                                error_msg = loc.inner_text().strip()
+                                break
+                        print(f"  - [Warning] Data not found or error reported by app for {name}: {error_msg}", flush=True)
                         update_status_to_not_found(code, name)
                 except Exception as e:
-                    print(f"  - [Timeout/Error] Results did not appear within 60s for {name}. Error: {e}", flush=True)
+                    print(f"  - [Timeout/Error] Results did not appear within 90s for {name}. Error: {e}", flush=True)
                     update_status_to_not_found(code, name)
                 
                 # 서버 부하 방지를 위해 잠시 대기
