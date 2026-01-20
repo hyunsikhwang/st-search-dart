@@ -186,35 +186,38 @@ def run_automation():
                 
                 print(f"  - Filling company name: {name}", flush=True)
                 main_frame.get_by_label("회사명").fill(name)
-                main_frame.get_by_label("회사명").press("Enter")
                 
                 print(f"  - Filling period: {DEFAULT_PERIOD}", flush=True)
                 main_frame.get_by_label("기준 연월 (YYYYMM)").fill(DEFAULT_PERIOD)
-                main_frame.get_by_label("기준 연월 (YYYYMM)").press("Enter")
                 
                 print("  - Clicking '조회하기' button...", flush=True)
                 main_frame.get_by_role("button", name="조회하기").click()
                 
-                print("  - Waiting for data collection results (40s timeout)...", flush=True)
+                print("  - Waiting for data collection results (60s timeout)...", flush=True)
                 try:
                     # 완결성 있는 성공/실패 판단을 위해 여러 지표를 한꺼번에 대기
-                    # 1. "조회 완료" 텍스트 (성공 메시지)
-                    # 2. "[회사명] 재무 추이" 제목 (차트 상단 헤더)
-                    # 3. "❌" (에러 발생 시)
-                    result_locator = main_frame.locator('text="조회 완료", h3:has-text(" 재무 추이"), text="❌"')
-                    result_locator.wait_for(state="visible", timeout=40000)
+                    # 1. "조회 완료" 텍스트 (st.status가 완료된 상태)
+                    # 2. "[회사명] 재무 추이" 또는 "Trend Chart" (차트 소제목 또는 헤더)
+                    # 3. "❌" (에러 발생 시) 또는 "데이터 없음"
+                    # 4. "stStatus" test-id를 가진 요소의 변화
+                    
+                    success_selector = 'text="조회 완료", h3:has-text("재무 추이"), h3:has-text("Trend Chart"), [data-testid="stStatus"]:has-text("조회 완료")'
+                    error_selector = 'text="❌", text="데이터를 찾을 수 없습니다", text="회사를 찾을 수 없습니다"'
+                    
+                    result_locator = main_frame.locator(f'{success_selector}, {error_selector}')
+                    result_locator.wait_for(state="visible", timeout=60000)
                     
                     # 성공 여부 최종 판정
-                    is_success = main_frame.get_by_text("조회 완료").is_visible() or \
-                                 main_frame.locator('h3:has-text(" 재무 추이")').is_visible()
+                    is_success = main_frame.locator(success_selector).first.is_visible()
                     
                     if is_success:
                         print(f"  - [Success] Successfully processed {name}", flush=True)
                     else:
-                        print(f"  - [Warning] Data not found or error reported by app for {name}", flush=True)
+                        error_text = main_frame.locator(error_selector).first.inner_text() if main_frame.locator(error_selector).first.is_visible() else "Unknown Error"
+                        print(f"  - [Warning] Data not found or error reported by app for {name}: {error_text}", flush=True)
                         update_status_to_not_found(code, name)
                 except Exception as e:
-                    print(f"  - [Timeout/Error] Results did not appear within 40s inside iframe for {name}.", flush=True)
+                    print(f"  - [Timeout/Error] Results did not appear within 60s inside iframe for {name}. Error: {e}", flush=True)
                     update_status_to_not_found(code, name)
                 
                 # 서버 부하 방지를 위해 잠시 대기
