@@ -926,22 +926,13 @@ if search_btn and company_name and year_month:
                             annotation_font=dict(color='#2ECC71', size=10)
                         )
 
-                        # 조건부 레이아웃: 데스크톱 vs 모바일
-                        if is_mobile():
-                            # 모바일: 기존과 동일하게 위아래로 표시
-                            st.html(gt_table.as_raw_html())
-                            st.divider()
-                            st.plotly_chart(fig, use_container_width=True)
-                        else:
-                            # 데스크톱: 왼쪽(테이블) / 오른쪽(차트) 분할
-                            # [수정] vertical_alignment="top" 적용 (테이블과 차트 상단 맞춤)
-                            left_col, right_col = st.columns([1, 1], vertical_alignment="top")
-
-                            with left_col:
-                                st.html(gt_table.as_raw_html())
-
-                            with right_col:
-                                st.plotly_chart(fig, use_container_width=True)
+                        # 차트 먼저 출력 (너비 확보)
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+                        st.divider()
+                        
+                        # 표 출력
+                        st.html(gt_table.as_raw_html())
 
                 except Exception as e:
                     status.update(label="❌ 오류 발생", state="error")
