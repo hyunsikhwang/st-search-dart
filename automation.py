@@ -184,28 +184,29 @@ def run_automation():
                 print(f"  - Filling company name: {name}", flush=True)
                 page.get_by_label("회사명").fill(name)
                 page.get_by_label("회사명").press("Enter")
+                time.sleep(0.5) # Streamlit 상태 동기화 대기
                 
                 print(f"  - Filling period: {DEFAULT_PERIOD}", flush=True)
                 page.get_by_label("기준 연월 (YYYYMM)").fill(DEFAULT_PERIOD)
                 page.get_by_label("기준 연월 (YYYYMM)").press("Enter")
+                time.sleep(0.5) # Streamlit 상태 동기화 대기
                 
                 print("  - Clicking '조회하기' button...", flush=True)
-                # Enter를 누르면 바로 제출될 수 있지만, 명시적으로 버튼을 클릭하여 확실히 처리
                 try:
-                    page.get_by_role("button", name="조회하기").click(timeout=2000)
+                    page.get_by_role("button", name="조회하기").click(timeout=3000)
                 except:
                     pass
                 
-                print("  - Waiting for data collection results (90s timeout)...", flush=True)
+                print("  - Waiting for data collection results (120s timeout)...", flush=True)
                 try:
                     # 완결성 있는 성공/실패 판단을 위해 여러 지표를 한꺼번에 대기
-                    # text=... 대신 :has-text(...) 를 사용하여 부분 일치 허용 (이모지, 동적 텍스트 대응)
                     success_indicators = [
                         page.locator('summary:has-text("조회 완료")'),
                         page.locator('p:has-text("조회 완료")'),
                         page.locator('h3:has-text("🏢")'),
-                        page.locator('div:has-text("핵심 재무지표 추이 분석")'),
-                        page.locator('h3:has-text("재무 추이")')
+                        page.locator('h1:has-text("🏢")'), # 가끔 H1으로 나올 수 있음
+                        page.locator('h3:has-text("재무 추이")'),
+                        page.locator('[data-testid="stMetricValue"]') # 지표 박스
                     ]
                     
                     error_indicators = [
@@ -213,7 +214,9 @@ def run_automation():
                         page.locator('p:has-text("회사를 찾을 수 없습니다")'),
                         page.locator('p:has-text("데이터 없음")'),
                         page.locator('p:has-text("❌")'),
-                        page.locator('p:has-text("데이터를 찾을 수 없습니다")')
+                        page.locator('p:has-text("데이터를 찾을 수 없습니다")'),
+                        page.locator('p:has-text("회사명을 입력해주세요")'),
+                        page.locator('p:has-text("기준 연월을 입력해주세요")')
                     ]
                     
                     # 모든 지표를 하나로 합침
@@ -221,8 +224,8 @@ def run_automation():
                     for loc in success_indicators[1:] + error_indicators:
                         combined_locator = combined_locator.or_(loc)
                     
-                    # .first 를 사용하여 최소 하나라도 보이면 즉시 다음 단계로 진행 (부모 매칭으로 인한 대기 방지)
-                    combined_locator.first.wait_for(state="visible", timeout=60000)
+                    # .first 를 사용하여 최소 하나라도 보이면 즉시 다음 단계로 진행
+                    combined_locator.first.wait_for(state="visible", timeout=120000)
                     
                     # 성공 여부 최종 판정
                     is_success = any(loc.is_visible() for loc in success_indicators)
@@ -239,7 +242,7 @@ def run_automation():
                         print(f"  - [Warning] Data not found or error reported by app for {name}: {error_msg}", flush=True)
                         update_status_to_not_found(code, name)
                 except Exception as e:
-                    print(f"  - [Timeout/Error] Results did not appear within 60s for {name}. Error: {e}", flush=True)
+                    print(f"  - [Timeout/Error] Results did not appear within 120s for {name}. Error: {e}", flush=True)
                     update_status_to_not_found(code, name)
                 
                 # 서버 부하 방지를 위해 잠시 대기
