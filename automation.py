@@ -201,19 +201,19 @@ def run_automation():
                     # 완결성 있는 성공/실패 판단을 위해 여러 지표를 한꺼번에 대기
                     # text=... 대신 :has-text(...) 를 사용하여 부분 일치 허용 (이모지, 동적 텍스트 대응)
                     success_indicators = [
-                        page.locator('div[data-testid="stStatus"]:has-text("조회 완료")'),
-                        page.locator(':has-text("📈 핵심 재무지표 추이 분석")'), # 차트 제목
-                        page.locator('span:has-text("🏢")'), # 회사명 헤더의 이모지
+                        page.locator('div[data-testid="stStatus"] p:has-text("조회 완료")'),
+                        page.locator('div:has-text("📈 핵심 재무지표 추이 분석")'),
+                        page.locator('span:has-text("🏢")'),
                         page.locator('h3:has-text("재무 추이")'),
                         page.locator('h3:has-text("Trend Chart")')
                     ]
                     
                     error_indicators = [
-                        page.locator('div[data-testid="stStatus"]:has-text("회사를 찾을 수 없습니다")'),
-                        page.locator('div[data-testid="stStatus"]:has-text("데이터 없음")'),
-                        page.locator(':has-text("❌")'),
-                        page.locator(':has-text("데이터를 찾을 수 없습니다")'),
-                        page.locator(':has-text("회사를 찾을 수 없습니다")')
+                        page.locator('div[data-testid="stStatus"] p:has-text("회사를 찾을 수 없습니다")'),
+                        page.locator('div[data-testid="stStatus"] p:has-text("데이터 없음")'),
+                        page.locator('div:has-text("❌")'),
+                        page.locator('div:has-text("데이터를 찾을 수 없습니다")'),
+                        page.locator('div:has-text("회사를 찾을 수 없습니다")')
                     ]
                     
                     # 모든 지표를 하나로 합침
@@ -221,7 +221,7 @@ def run_automation():
                     for loc in success_indicators[1:] + error_indicators:
                         combined_locator = combined_locator.or_(loc)
                     
-                    combined_locator.wait_for(state="visible", timeout=60000)
+                    combined_locator.first.wait_for(state="visible", timeout=60000)
                     
                     # 성공 여부 최종 판정
                     is_success = any(loc.is_visible() for loc in success_indicators)
