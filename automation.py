@@ -10,7 +10,7 @@ API_KEY = os.getenv("DART_API_KEY")
 DB_PATH = "md:"
 APP_URL = "https://search-dart.streamlit.app/~/+/"
 DEFAULT_PERIOD = "202509" # 기본 기준연월
-BATCH_SIZE = 5 # 한 번에 처리할 회사 수
+BATCH_SIZE = 10 # 한 번에 처리할 회사 수
 
 import requests
 import zipfile
