@@ -861,7 +861,7 @@ if search_btn and company_name and year_month:
                         fig.update_layout(
                             title=dict(
                                 text='📈 핵심 재무지표 추이 분석',
-                                font=dict(size=18, color='#111111', family='Inter', weight='700')
+                                font=dict(size=18, color='#111111', family='Inter', weight='bold')
                             ),
                             hovermode='x unified',
                             plot_bgcolor='rgba(252,252,252,0.5)',
