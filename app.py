@@ -671,7 +671,7 @@ st.markdown("""
 st.markdown("""
 <div class="hero-container">
     <div class="hero-title">📈 Search DART</div>
-    <div class="hero-subtitle">Value Horizon의 스마트한 기업 분석 엔진.<br>실시간 공시 데이터를 바탕으로 최근 4개년의 핵심 재무 추이를 시각화합니다.</div>
+    <div class="hero-subtitle">Value Horizon's Intelligent Corporate Analysis Engine.<br>Visualize key financial trends over the last 4 years based on real-time DART filings.</div>
 </div>
 """, unsafe_allow_html=True)
 
