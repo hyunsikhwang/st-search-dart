@@ -202,11 +202,15 @@ def run_automation():
                     # text=... 대신 :has-text(...) 를 사용하여 부분 일치 허용 (이모지, 동적 텍스트 대응)
                     success_indicators = [
                         page.locator('div[data-testid="stStatus"]:has-text("조회 완료")'),
+                        page.locator(':has-text("📈 핵심 재무지표 추이 분석")'), # 차트 제목
+                        page.locator('span:has-text("🏢")'), # 회사명 헤더의 이모지
                         page.locator('h3:has-text("재무 추이")'),
                         page.locator('h3:has-text("Trend Chart")')
                     ]
                     
                     error_indicators = [
+                        page.locator('div[data-testid="stStatus"]:has-text("회사를 찾을 수 없습니다")'),
+                        page.locator('div[data-testid="stStatus"]:has-text("데이터 없음")'),
                         page.locator(':has-text("❌")'),
                         page.locator(':has-text("데이터를 찾을 수 없습니다")'),
                         page.locator(':has-text("회사를 찾을 수 없습니다")')
