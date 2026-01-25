@@ -16,9 +16,10 @@ from typing import Optional, Dict, List
 # 0. Streamlit 설정 및 상수
 # ==========================================
 st.set_page_config(
-    page_title="DART 재무정보 검색",
+    page_title="DART 재무정보 검색 | Value Horizon",
     page_icon="📈",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 # API 키 가져오기 (Streamlit Secrets 우선, 없으면 환경변수)
@@ -542,11 +543,137 @@ def process_dataframe_for_view(df: pd.DataFrame) -> pd.DataFrame:
     return result_df
 
 # ==========================================
-# 5. UI Layout
+# 5. UI Layout - Value Horizon Design System
 # ==========================================
 
-st.title("📊 DART 재무정보 조회")
-st.markdown("회사명과 기준 연월을 입력하면 최근 4년치 **매출액, 영업이익, 영업이익률** 추이를 보여줍니다.")
+# Custom CSS for Value Horizon Look & Feel
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+    /* Minimize Streamlit Padding and Margins */
+    .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 3rem !important;
+        max-width: 1000px !important;
+    }
+    
+    [data-testid="stHeader"] {
+        display: none;
+    }
+
+    /* Global Styles */
+    .stApp {
+        background-color: #ffffff;
+        color: #1a1a1a;
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Hero Section */
+    .hero-container {
+        padding: 2.5rem 0;
+        text-align: center;
+        border-bottom: 1px solid #f0f0f0;
+        margin-bottom: 3rem;
+    }
+
+    .hero-title {
+        font-size: 2.6rem;
+        font-weight: 700;
+        color: #111111;
+        margin-bottom: 0.5rem;
+        letter-spacing: -1px;
+    }
+
+    .hero-subtitle {
+        font-size: 1.05rem;
+        font-weight: 400;
+        color: #888888;
+        max-width: 600px;
+        margin: 0 auto;
+        line-height: 1.5;
+    }
+
+    /* Search Section Styling */
+    .search-header {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #111111;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    /* Input and Button Refinement */
+    div[data-testid="stForm"] {
+        border: 1px solid #eaeaea !important;
+        border-radius: 20px !important;
+        padding: 2rem !important;
+        background-color: #ffffff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    .stTextInput input {
+        border-radius: 10px !important;
+        border: 1px solid #e0e0e0 !important;
+        padding: 0.6rem 1rem !important;
+        font-size: 1rem !important;
+        background-color: #f9f9f9 !important;
+        transition: all 0.2s ease;
+    }
+
+    .stTextInput input:focus {
+        border-color: #007aff !important;
+        background-color: #ffffff !important;
+        box-shadow: 0 0 0 3px rgba(0,122,255,0.1) !important;
+    }
+
+    .stButton button {
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        font-size: 1rem !important;
+        background-color: #007aff !important;
+        color: white !important;
+        border: none !important;
+        padding: 0.6rem 1.5rem !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        height: 100% !important;
+    }
+
+    .stButton button:hover {
+        background-color: #0063cc !important;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 15px rgba(0,122,255,0.25) !important;
+    }
+
+    /* Hide Streamlit components */
+    #MainMenu, footer, header, .stDeployButton {
+        display: none !important;
+    }
+
+    /* Expander Styling */
+    .stExpander {
+        border: 1px solid #f0f0f0 !important;
+        border-radius: 12px !important;
+        background-color: #fafafa !important;
+        margin-top: 1rem;
+    }
+    
+    .stExpander summary {
+        font-weight: 600 !important;
+        color: #666666 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Hero Section
+st.markdown("""
+<div class="hero-container">
+    <div class="hero-title">📈 Search DART</div>
+    <div class="hero-subtitle">Value Horizon의 스마트한 기업 분석 엔진.<br>실시간 공시 데이터를 바탕으로 최근 4개년의 핵심 재무 추이를 시각화합니다.</div>
+</div>
+""", unsafe_allow_html=True)
 
 if not API_KEY:
     st.error("🚨 DART API Key가 설정되지 않았습니다. Streamlit Secrets에 `DART_API_KEY`를 설정해주세요.")
@@ -568,41 +695,7 @@ def is_mobile():
         return False
 
 # 검색 폼 (사이드바 대신 메인 영역에 배치)
-st.header("🔍 검색 설정")
-
-# CSS 주입: 인풋박스와 버튼의 높이를 강제로 맞춤
-st.markdown("""
-<style>
-    .stAppHeader {
-        padding: 0.5rem 1rem !important;
-    }
-    .stMainBlockContainer {
-        padding-top: 3rem !important;
-        padding-bottom: 0.5rem !important;
-    }
-    /* Input과 Button의 높이 통일 (40px) */
-    .stTextInput input {
-        height: 40px !important;
-        padding: 0.5rem !important;
-        margin: 0 !important;
-        box-sizing: border-box !important;
-    }
-    .stButton button {
-        height: 40px !important;
-        padding: 0.5rem !important;
-        margin: 0 !important;
-        box-sizing: border-box !important;
-    }
-    .stForm {
-        margin-bottom: 0.5rem !important;
-    }
-    /* 테이블 행 높이 조정 */
-    .gt_table tbody tr td {
-        height: 75% !important;
-        padding: 0.4rem 0.6rem !important;
-    }
-</style>
-""", unsafe_allow_html=True)
+st.markdown('<div class="search-header">🔍 검색 설정</div>', unsafe_allow_html=True)
 
 with st.form(key="search_form"):
     # [수정] vertical_alignment="bottom" 적용
@@ -664,10 +757,10 @@ if search_btn and company_name and year_month:
 
                         status.update(label=f"✅ 조회 완료! ({elapsed:.2f}초)", state="complete")
 
-                        st.subheader(f"{company_name} 재무 추이")
+                        st.markdown(f"### 🏢 {company_name} <small style='color: #666; font-size: 0.6em;'>재무 실적 분석</small>", unsafe_allow_html=True)
 
                         # ==========================================================
-                        # Great Tables Styling Logic
+                        # Great Tables Styling Logic (Value Horizon Premium)
                         # ==========================================================
                         gt_table = (
                             gt.GT(view_df)
@@ -687,72 +780,45 @@ if search_btn and company_name and year_month:
                             # 1. 컬럼 레이블 스타일
                             .tab_style(
                                 style=[
-                                    gt.style.text(weight="bold"),
-                                    gt.style.fill(color="#f0f2f6"),
-                                    gt.style.borders(sides="top", color="#e0e0e0", weight="2px")
+                                    gt.style.text(weight="600", color="#111111"),
+                                    gt.style.fill(color="#ffffff"),
                                 ],
                                 locations=gt.loc.column_labels()
                             )
-                            # 2. '기간' 컬럼 레이블 스타일
+                            # 2. 본문 셀 스타일
                             .tab_style(
                                 style=[
-                                    gt.style.fill(color="#e8f4f8"),
-                                    gt.style.text(weight="bold", color="#2c3e50")
-                                ],
-                                locations=gt.loc.column_labels(columns=["기간"])
-                            )
-                            # 3. '매출액', '영업이익' 컬럼 레이블 스타일
-                            .tab_style(
-                                style=[
-                                    gt.style.fill(color="#e3f2fd"),
-                                    gt.style.text(weight="bold", color="#1976d2")
-                                ],
-                                locations=gt.loc.column_labels(columns=["매출액", "영업이익"])
-                            )
-                            # 4. '영업이익률' 컬럼 레이블 스타일
-                            .tab_style(
-                                style=[
-                                    gt.style.fill(color="#e8f5e9"),
-                                    gt.style.text(weight="bold", color="#2e7d32")
-                                ],
-                                locations=gt.loc.column_labels(columns=["영업이익률"])
-                            )
-                            # 5. 행 그룹 스타일
-                            .tab_style(
-                                style=[
-                                    gt.style.fill(color="#f5f5f5"),
-                                    gt.style.borders(sides="bottom", color="#e0e0e0", weight="1px")
-                                ],
-                                locations=gt.loc.row_groups()
-                            )
-                            # 6. 본문 셀 스타일
-                            .tab_style(
-                                style=[
-                                    gt.style.fill(color="#ffffff"),
-                                    gt.style.borders(sides=["left", "right"], color="#e0e0e0", weight="1px")
+                                    gt.style.borders(sides="bottom", color="#f0f0f0", weight="1px"),
+                                    gt.style.text(color="#1a1a1a")
                                 ],
                                 locations=gt.loc.body()
                             )
-                            # 7. 본문 '기간' 컬럼 스타일
+                            # 3. '기간' 컬럼 강조 (Value Horizon Blue Accent)
                             .tab_style(
                                 style=[
-                                    gt.style.fill(color="#fafafa"),
-                                    gt.style.text(weight="bold")
+                                    gt.style.text(weight="600", color="#007aff"),
                                 ],
                                 locations=gt.loc.body(columns=["기간"])
                             )
-                            # 8. 본문 데이터 컬럼 스타일
+                            # 4. 매출/영익 강조
                             .tab_style(
                                 style=[
-                                    gt.style.fill(color="#ffffff")
+                                    gt.style.text(weight="500")
                                 ],
-                                locations=gt.loc.body(columns=["매출액", "영업이익", "영업이익률"])
+                                locations=gt.loc.body(columns=["매출액", "영업이익"])
                             )
                             .tab_options(
-                                table_font_size="small",
-                                heading_title_font_size="large",
-                                heading_subtitle_font_size="small",
-                                table_width="100%"
+                                table_font_size="13px",
+                                table_width="100%",
+                                column_labels_font_size="14px",
+                                table_border_top_style="none",
+                                table_border_bottom_style="none",
+                                column_labels_border_top_style="none",
+                                column_labels_border_bottom_width="2px",
+                                column_labels_border_bottom_color="#111111",
+                                table_font_names="Inter",
+                                row_striping_include_table_body=True,
+                                row_striping_background_color="#f9f9f9"
                             )
                         )
 
@@ -765,80 +831,76 @@ if search_btn and company_name and year_month:
                             y=view_df['영업이익률'],
                             name='영업이익률 (%)',
                             mode='lines+markers',
-                            line=dict(color='#2ECC71', width=3, shape='spline'),
-                            marker=dict(size=8, color='#2ECC71', symbol='circle'),
-                            fill='tonexty',
-                            fillcolor='rgba(46, 204, 113, 0.1)',
+                            line=dict(color='#007aff', width=3, shape='spline'),
+                            marker=dict(size=8, color='#ffffff', line=dict(color='#007aff', width=2), symbol='circle'),
                             yaxis='y',
-                            text=view_df['영업이익률'].round(1).astype(str) + '%',
-                            textposition='top center',
-                            textfont=dict(color='#2ECC71', size=10)
+                            hovertemplate='<b>%{x}</b><br>영업이익률: %{y:.2f}%<extra></extra>'
                         ))
 
                         # Secondary Y-axis: 매출액 (Bar)
                         fig.add_trace(go.Bar(
                             x=view_df['기간'],
                             y=view_df['매출액'],
-                            name='매출액 (백만원)',
-                            marker=dict(color='#3498DB', opacity=0.8),
+                            name='매출액 (백만)',
+                            marker=dict(color='#e5e5ea', opacity=0.8, line=dict(width=0)),
                             yaxis='y2',
-                            hovertemplate='<b>%{x}</b><br>매출액: %{y:,.0f}백만원<extra></extra>'
+                            hovertemplate='<b>%{x}</b><br>매출액: %{y:,.0f}백만<extra></extra>'
                         ))
 
                         # Secondary Y-axis: 영업이익 (Bar)
                         fig.add_trace(go.Bar(
                             x=view_df['기간'],
                             y=view_df['영업이익'],
-                            name='영업이익 (백만원)',
-                            marker=dict(color='#E74C3C', opacity=0.8),
+                            name='영업이익 (백만)',
+                            marker=dict(color='#34c759', opacity=0.8, line=dict(width=0)),
                             yaxis='y2',
-                            hovertemplate='<b>%{x}</b><br>영업이익: %{y:,.0f}백만원<extra></extra>'
+                            hovertemplate='<b>%{x}</b><br>영업이익: %{y:,.0f}백만<extra></extra>'
                         ))
 
                         # 레이아웃 설정
                         fig.update_layout(
-                            title='📈Trend Chart',
-                            xaxis=dict(
-                                title='기간',
-                                tickfont=dict(size=11),
-                                showgrid=False
-                            ),
-                            yaxis=dict(
-                                title='영업이익률 (%)',
-                                tickfont=dict(color='#2ECC71', size=11),
-                                side='left',
-                                range=[0, max(view_df['영업이익률'].max() * 1.2, 100)],
-                                showgrid=True,
-                                gridcolor='rgba(46, 204, 113, 0.05)',
-                                gridwidth=1,
-                                zeroline=True,
-                                zerolinecolor='rgba(46, 204, 113, 0.3)',
-                                zerolinewidth=2
-                            ),
-                            yaxis2=dict(
-                                title='금액 (백만원)',
-                                tickfont=dict(color='#3498DB', size=11),
-                                overlaying='y',
-                                side='right',
-                                showgrid=False
+                            title=dict(
+                                text='📈 핵심 재무지표 추이 분석',
+                                font=dict(size=18, color='#111111', family='Inter', weight='700')
                             ),
                             hovermode='x unified',
+                            plot_bgcolor='rgba(252,252,252,0.5)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            margin=dict(l=50, r=50, t=100, b=50),
                             legend=dict(
                                 orientation="h",
                                 yanchor="bottom",
-                                y=1.02,
+                                y=1.05,
                                 xanchor="right",
                                 x=1,
-                                bgcolor='rgba(255,255,255,0.8)',
-                                bordercolor='rgba(0,0,0,0.1)',
-                                borderwidth=1
+                                font=dict(size=11, color='#666666')
                             ),
-                            barmode='group',
-                            plot_bgcolor='rgba(250,250,250,0.9)',
-                            paper_bgcolor='white',
-                            margin=dict(l=60, r=60, b=60, t=80, pad=4),
-                            height=550,
-                            font=dict(family='Arial, sans-serif', size=11)
+                            xaxis=dict(
+                                title='',
+                                showgrid=False,
+                                tickfont=dict(size=11, color='#8e8e93'),
+                                linecolor='#eaeaea'
+                            ),
+                            yaxis=dict(
+                                title='영업이익률 (%)',
+                                side='left',
+                                showgrid=True,
+                                gridcolor='#f2f2f7',
+                                ticksuffix='%',
+                                tickfont=dict(size=11, color='#007aff'),
+                                range=[min(0, view_df['영업이익률'].min() * 1.5), max(view_df['영업이익률'].max() * 1.5, 10)]
+                            ),
+                            yaxis2=dict(
+                                title='금액 (백만)',
+                                side='right',
+                                overlaying='y',
+                                showgrid=False,
+                                tickfont=dict(size=11, color='#8e8e93'),
+                                tickformat=',.0f'
+                            ),
+                            bargap=0.35,
+                            height=500,
+                            font=dict(family='Inter, sans-serif')
                         )
 
                         actual_max = view_df['영업이익률'].max()
