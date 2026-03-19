@@ -705,7 +705,7 @@ with st.form(key="search_form"):
     with col1:
         company_name = st.text_input("회사명", placeholder="예: 삼성전자", key="company_input")
     with col2:
-        year_month = st.text_input("기준 연월 (YYYYMM)", value="202509", placeholder="202509", key="year_month_input")
+        year_month = st.text_input("기준 연월 (YYYYMM)", value="202512", placeholder="202512", key="year_month_input")
     with col3:
         search_btn = st.form_submit_button("조회하기", type="primary", use_container_width=True, key="search_button")
 
