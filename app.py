@@ -1161,7 +1161,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="search-header">워크스페이스</div>', unsafe_allow_html=True)
 query_tab, screen_tab = st.tabs(["기업별 재무 조회", "조건 검색"])
 
 with query_tab:
