@@ -1,12 +1,12 @@
 # 작업 계획
 
-- [x] `automation.py`의 `processing_status.last_base_period` 사용 흐름과 재조회 누락 원인을 확인
-- [x] 현재 조회 기준월보다 과거에 처리된 회사가 재처리 대상에 포함되도록 자동화 쿼리 수정
+- [x] 저장 현황을 계산할 수 있는 테이블과 현재 UI 배치를 확인
+- [x] 총 회사 수 및 기준연월별 현황 조회 함수와 표시 UI를 구현
 - [x] 정적 검증, git 점검, 커밋/푸시 수행
 
 # 리뷰
 
-- `processing_status.last_base_period`가 현재 조회 기준월보다 작은 경우 재조회 대상으로 다시 포함되도록 `automation.py` 쿼리를 수정함
-- `last_base_period`가 비어있거나 숫자 변환이 안 되는 상태도 재처리 대상으로 포함해 상태 이상치에 막히지 않도록 보완함
-- `python3 -B -m py_compile automation.py`로 문법 검증 완료
+- 검색 설정 하단에 현재 DB 총 저장 회사 수와 기준연월별 저장 현황을 표시하는 UI를 추가함
+- 기준연월이 비어 있거나 분류되지 않은 회사는 `미분류`로 묶어 총계와 현황 합계가 어긋나지 않게 처리함
+- `python3 -B -m py_compile app.py`로 문법 검증 완료
 - `pytest -q`는 로컬 환경에 `pytest` 명령이 없어 실행하지 못함

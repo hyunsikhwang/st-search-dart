@@ -693,6 +693,53 @@ def screen_companies_by_margin(num_quarters: int, min_margin_pct: float) -> pd.D
         ascending=[False, False, True]
     ).reset_index(drop=True)
 
+@st.cache_data(ttl=300)
+def get_db_storage_status() -> tuple[int, pd.DataFrame]:
+    """DB에 저장된 회사 수와 기준연월별 저장 현황을 요약한다."""
+    try:
+        if MD_TOKEN:
+            conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+            conn.execute("USE dart_financials")
+        else:
+            conn = duckdb.connect(DB_PATH)
+
+        total_companies = conn.execute("""
+            SELECT COUNT(DISTINCT corp_code)
+            FROM cached_financials
+        """).fetchone()[0] or 0
+
+        period_df = conn.execute("""
+            WITH stored_companies AS (
+                SELECT DISTINCT corp_code
+                FROM cached_financials
+            )
+            SELECT
+                ps.last_base_period AS 기준연월,
+                COUNT(DISTINCT ps.corp_code) AS 회사수
+            FROM processing_status ps
+            INNER JOIN stored_companies sc ON ps.corp_code = sc.corp_code
+            WHERE ps.status = 'SUCCESS'
+              AND ps.last_base_period IS NOT NULL
+              AND TRIM(ps.last_base_period) <> ''
+            GROUP BY ps.last_base_period
+            ORDER BY ps.last_base_period DESC
+        """).df()
+        conn.close()
+    except Exception as e:
+        st.error(f"DB 저장 현황을 불러오는 중 오류가 발생했습니다: {e}")
+        return 0, pd.DataFrame()
+
+    categorized_count = int(period_df['회사수'].sum()) if not period_df.empty else 0
+    uncategorized_count = max(int(total_companies) - categorized_count, 0)
+
+    if uncategorized_count > 0:
+        period_df = pd.concat([
+            period_df,
+            pd.DataFrame([{'기준연월': '미분류', '회사수': uncategorized_count}])
+        ], ignore_index=True)
+
+    return int(total_companies), period_df
+
 # ==========================================
 # 5. UI Layout - Value Horizon Design System
 # ==========================================
@@ -871,6 +918,22 @@ with st.expander("⚙️ 설정"):
                 st.cache_data.clear()
             else:
                 st.error("회사 고유번호 업데이트에 실패했습니다.")
+
+total_stored_companies, storage_period_df = get_db_storage_status()
+
+st.markdown("#### DB 저장 현황")
+summary_col1, summary_col2 = st.columns([1, 2])
+with summary_col1:
+    st.metric("총 저장 회사 수", f"{total_stored_companies:,}개")
+with summary_col2:
+    if storage_period_df.empty:
+        st.caption("기준연월별 저장 현황이 아직 없습니다.")
+    else:
+        period_summary_text = " · ".join(
+            f"{row['기준연월']}: {int(row['회사수']):,}개"
+            for _, row in storage_period_df.iterrows()
+        )
+        st.caption(period_summary_text)
 
 st.markdown('<div class="search-header">📋 조건 검색</div>', unsafe_allow_html=True)
 
