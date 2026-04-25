@@ -1,12 +1,12 @@
 # 작업 계획
 
-- [x] 현재 앱 구조와 DuckDB 스키마, 기존 UI 배치를 확인
-- [x] 최근 N분기 영업이익률 조건 검색 함수와 결과 UI를 구현
-- [x] 정적 검증 및 git 점검
+- [x] `automation.py`의 `processing_status.last_base_period` 사용 흐름과 재조회 누락 원인을 확인
+- [x] 현재 조회 기준월보다 과거에 처리된 회사가 재처리 대상에 포함되도록 자동화 쿼리 수정
+- [x] 정적 검증, git 점검, 커밋/푸시 수행
 
 # 리뷰
 
-- DuckDB 저장 데이터 전체를 대상으로 최근 N개 분기 연속 영업이익률 조건을 만족하는 회사 리스트 UI를 추가함
-- 회사별/구분별로 분리된 Q4 조정 로직으로 전체 데이터 스크리닝 시 누적값이 섞이지 않도록 보완함
-- `python3 -B -m py_compile app.py`로 문법 검증 완료
-- `pytest -q`는 로컬 환경에 `pytest`가 없어 실행하지 못함
+- `processing_status.last_base_period`가 현재 조회 기준월보다 작은 경우 재조회 대상으로 다시 포함되도록 `automation.py` 쿼리를 수정함
+- `last_base_period`가 비어있거나 숫자 변환이 안 되는 상태도 재처리 대상으로 포함해 상태 이상치에 막히지 않도록 보완함
+- `python3 -B -m py_compile automation.py`로 문법 검증 완료
+- `pytest -q`는 로컬 환경에 `pytest` 명령이 없어 실행하지 못함

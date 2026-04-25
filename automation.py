@@ -76,7 +76,7 @@ def sync_corp_codes():
         return False
 
 def get_unprocessed_companies():
-    """아직 처리되지 않은 회사 목록을 가져옵니다."""
+    """아직 처리되지 않았거나 최신 기준월보다 과거 상태인 회사 목록을 가져옵니다."""
     try:
         print(f"[Database] Connecting to MotherDuck (Path: {DB_PATH})...", flush=True)
         conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
@@ -128,11 +128,14 @@ def get_unprocessed_companies():
             SELECT c.corp_name, c.corp_code 
             FROM corp_codes c
             LEFT JOIN processing_status p ON c.corp_code = p.corp_code
-            WHERE p.corp_code IS NULL
+            WHERE
+                p.corp_code IS NULL
+                OR TRY_CAST(p.last_base_period AS INTEGER) IS NULL
+                OR TRY_CAST(p.last_base_period AS INTEGER) < ?
             ORDER BY c.corp_code ASC
             LIMIT ?
         """
-        df = conn.execute(query, [BATCH_SIZE]).df()
+        df = conn.execute(query, [int(DEFAULT_PERIOD), BATCH_SIZE]).df()
         conn.close()
         return df.to_dict('records')
     except Exception as e:
