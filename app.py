@@ -1107,6 +1107,19 @@ else:
         for _, row in storage_period_df.iterrows()
     )
 
+st.markdown(f"""
+<div class="status-strip">
+    <div class="status-main">
+        <div class="status-main-label">DB 저장 현황</div>
+        <div class="status-main-value">{total_stored_companies:,}개</div>
+    </div>
+    <div class="status-detail">
+        <div class="status-detail-label">기준연월별 저장 분포</div>
+        <div class="status-pills">{storage_summary_html}</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
 st.markdown('<div class="search-header">워크스페이스</div>', unsafe_allow_html=True)
 query_tab, screen_tab = st.tabs(["기업별 재무 조회", "조건 검색"])
 
@@ -1149,19 +1162,6 @@ with screen_tab:
             key="screening_avg_margin"
         )
         screening_btn = st.form_submit_button("리스트 추출", type="primary", use_container_width=True, key="screening_button")
-
-st.markdown(f"""
-<div class="status-strip">
-    <div class="status-main">
-        <div class="status-main-label">DB 저장 현황</div>
-        <div class="status-main-value">{total_stored_companies:,}개</div>
-    </div>
-    <div class="status-detail">
-        <div class="status-detail-label">기준연월별 저장 분포</div>
-        <div class="status-pills">{storage_summary_html}</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
 
 with st.expander("⚙️ 관리 및 데이터 안내"):
     if st.button("🔄 회사 고유번호(corpCode.xml) 강제 갱신"):
