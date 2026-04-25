@@ -548,7 +548,11 @@ def process_dataframe_for_view(df: pd.DataFrame) -> pd.DataFrame:
     
     return result_df
 
-def screen_companies_by_margin(num_quarters: int, min_margin_pct: float, avg_margin_pct: float) -> pd.DataFrame:
+def screen_companies_by_margin(
+    num_quarters: int,
+    min_margin_pct: Optional[float],
+    avg_margin_pct: Optional[float]
+) -> pd.DataFrame:
     """DB에 저장된 전체 회사 데이터 중 최근 N개 분기 영업이익률 조건을 만족하는 회사를 찾는다."""
     try:
         if MD_TOKEN:
@@ -649,12 +653,16 @@ def screen_companies_by_margin(num_quarters: int, min_margin_pct: float, avg_mar
         )
         .reset_index()
     )
-    qualified_codes = qualified_codes[
+    condition = (
         (qualified_codes['분기수'] == num_quarters)
-        & (qualified_codes['최소영업이익률'] >= min_margin_pct)
-        & (qualified_codes['평균영업이익률'] >= avg_margin_pct)
         & ((qualified_codes['최신기간인덱스'] - qualified_codes['최저기간인덱스']) == (num_quarters - 1))
-    ]
+    )
+    if min_margin_pct is not None:
+        condition &= qualified_codes['최소영업이익률'] >= min_margin_pct
+    if avg_margin_pct is not None:
+        condition &= qualified_codes['평균영업이익률'] >= avg_margin_pct
+
+    qualified_codes = qualified_codes[condition]
     if qualified_codes.empty:
         return pd.DataFrame()
 
@@ -796,10 +804,10 @@ st.markdown("""
 
     /* Search Section Styling */
     .search-header {
-        font-size: 1.3rem;
+        font-size: 1.12rem;
         font-weight: 600;
         color: #111111;
-        margin-bottom: 1.25rem;
+        margin-bottom: 0.55rem;
         display: flex;
         align-items: center;
         gap: 0.6rem;
@@ -808,8 +816,8 @@ st.markdown("""
     /* Input and Button Refinement */
     div[data-testid="stForm"] {
         border: 1px solid #eaeaea !important;
-        border-radius: 18px !important;
-        padding: 1.1rem 1.1rem 0.8rem 1.1rem !important;
+        border-radius: 14px !important;
+        padding: 0.75rem 0.85rem 0.55rem 0.85rem !important;
         background-color: #ffffff;
         box-shadow: 0 4px 12px rgba(0,0,0,0.03);
     }
@@ -856,17 +864,17 @@ st.markdown("""
     .status-strip {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.65rem;
+        gap: 0.5rem;
         align-items: stretch;
-        margin: 0.65rem 0 0.35rem 0;
+        margin: 0.45rem 0 0.25rem 0;
     }
 
     .status-main {
         flex: 0 0 280px;
         background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
         color: #ffffff;
-        border-radius: 16px;
-        padding: 0.8rem 0.95rem;
+        border-radius: 12px;
+        padding: 0.58rem 0.8rem;
     }
 
     .status-main-label {
@@ -876,7 +884,7 @@ st.markdown("""
     }
 
     .status-main-value {
-        font-size: 1.55rem;
+        font-size: 1.34rem;
         font-weight: 700;
         letter-spacing: -0.03em;
     }
@@ -885,33 +893,33 @@ st.markdown("""
         flex: 1 1 520px;
         background: #f8fafc;
         border: 1px solid #e8eef5;
-        border-radius: 16px;
-        padding: 0.8rem 0.95rem;
+        border-radius: 12px;
+        padding: 0.58rem 0.8rem;
     }
 
     .status-detail-label {
         font-size: 0.82rem;
         font-weight: 700;
         color: #475569;
-        margin-bottom: 0.45rem;
+        margin-bottom: 0.32rem;
     }
 
     .status-pills {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.4rem;
+        gap: 0.3rem;
     }
 
     .status-pill {
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
-        padding: 0.34rem 0.58rem;
+        padding: 0.26rem 0.5rem;
         border-radius: 999px;
         background: #ffffff;
         border: 1px solid #e5e7eb;
         color: #334155;
-        font-size: 0.79rem;
+        font-size: 0.76rem;
         font-weight: 600;
         white-space: nowrap;
     }
@@ -926,10 +934,15 @@ st.markdown("""
     .stTextInput input {
         border-radius: 10px !important;
         border: 1px solid #e0e0e0 !important;
-        padding: 0.42rem 0.8rem !important;
-        font-size: 0.96rem !important;
+        padding: 0.34rem 0.7rem !important;
+        font-size: 0.92rem !important;
         background-color: #f9f9f9 !important;
         transition: all 0.2s ease;
+    }
+
+    .stNumberInput input {
+        padding: 0.34rem 0.7rem !important;
+        font-size: 0.92rem !important;
     }
 
     .stTextInput input:focus {
@@ -941,11 +954,11 @@ st.markdown("""
     .stButton button {
         border-radius: 10px !important;
         font-weight: 600 !important;
-        font-size: 0.96rem !important;
+        font-size: 0.92rem !important;
         background-color: #007aff !important;
         color: white !important;
         border: none !important;
-        padding: 0.42rem 1rem !important;
+        padding: 0.34rem 0.85rem !important;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
         height: 100% !important;
     }
@@ -966,13 +979,19 @@ st.markdown("""
     }
 
     .stTextInput label p,
-    .stNumberInput label p {
+    .stNumberInput label p,
+    .stCheckbox label p {
         color: #111111 !important;
         opacity: 1 !important;
-        font-size: 0.9rem !important;
+        font-size: 0.84rem !important;
         line-height: 1.25 !important;
-        margin-bottom: 0.3rem !important;
+        margin-bottom: 0.22rem !important;
         word-break: keep-all;
+    }
+
+    .stCheckbox {
+        min-height: 2.1rem !important;
+        padding-top: 1.25rem;
     }
 
     div[data-testid="stForm"] [data-testid="stHorizontalBlock"] {
@@ -985,11 +1004,11 @@ st.markdown("""
         border: 1px solid #edf1f5;
         border-radius: 14px;
         padding: 0.35rem;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.5rem;
     }
 
     .stTabs [data-baseweb="tab"] {
-        height: 2.35rem;
+        height: 2.1rem;
         border-radius: 10px;
         color: #475569;
         font-weight: 700;
@@ -1145,22 +1164,31 @@ with screen_tab:
             step=1,
             key="screening_quarters"
         )
-        screening_margin = st.number_input(
-            "최소 영업이익률 (%)",
-            min_value=-100.0,
-            max_value=100.0,
-            value=10.0,
-            step=0.5,
-            key="screening_margin"
-        )
-        screening_avg_margin = st.number_input(
-            "평균 영업이익률 (%)",
-            min_value=-100.0,
-            max_value=100.0,
-            value=10.0,
-            step=0.5,
-            key="screening_avg_margin"
-        )
+        min_toggle_col, min_value_col, avg_toggle_col, avg_value_col = st.columns([0.75, 1, 0.75, 1], vertical_alignment="bottom")
+        with min_toggle_col:
+            use_min_margin = st.checkbox("최소 적용", value=True, key="use_min_margin")
+        with min_value_col:
+            screening_margin = st.number_input(
+                "최소 영업이익률 (%)",
+                min_value=-100.0,
+                max_value=100.0,
+                value=10.0,
+                step=0.5,
+                key="screening_margin",
+                disabled=not use_min_margin
+            )
+        with avg_toggle_col:
+            use_avg_margin = st.checkbox("평균 적용", value=False, key="use_avg_margin")
+        with avg_value_col:
+            screening_avg_margin = st.number_input(
+                "평균 영업이익률 (%)",
+                min_value=-100.0,
+                max_value=100.0,
+                value=10.0,
+                step=0.5,
+                key="screening_avg_margin",
+                disabled=not use_avg_margin
+            )
         screening_btn = st.form_submit_button("리스트 추출", type="primary", use_container_width=True, key="screening_button")
 
 with st.expander("⚙️ 관리 및 데이터 안내"):
@@ -1175,18 +1203,31 @@ with st.expander("⚙️ 관리 및 데이터 안내"):
 
 if screening_btn:
     with st.status("조건 검색을 실행하고 있습니다...", expanded=True) as status:
-        screened_df = screen_companies_by_margin(
-            int(screening_quarters),
-            float(screening_margin),
-            float(screening_avg_margin)
-        )
+        min_margin_filter = float(screening_margin) if use_min_margin else None
+        avg_margin_filter = float(screening_avg_margin) if use_avg_margin else None
+
+        if min_margin_filter is None and avg_margin_filter is None:
+            status.update(label="❌ 조건 선택 필요", state="error")
+            st.warning("최소 영업이익률 또는 평균 영업이익률 중 하나 이상을 선택해주세요.")
+            screened_df = pd.DataFrame()
+        else:
+            screened_df = screen_companies_by_margin(
+                int(screening_quarters),
+                min_margin_filter,
+                avg_margin_filter
+            )
 
         if screened_df.empty:
-            status.update(label="❌ 조건을 만족하는 회사 없음", state="error")
-            st.warning(
-                f"직전 {int(screening_quarters)}개 분기 동안 최소 영업이익률 {float(screening_margin):.2f}% 이상, "
-                f"평균 영업이익률 {float(screening_avg_margin):.2f}% 이상을 만족한 회사가 없습니다."
-            )
+            if min_margin_filter is not None or avg_margin_filter is not None:
+                status.update(label="❌ 조건을 만족하는 회사 없음", state="error")
+                selected_conditions = []
+                if min_margin_filter is not None:
+                    selected_conditions.append(f"최소 영업이익률 {min_margin_filter:.2f}% 이상")
+                if avg_margin_filter is not None:
+                    selected_conditions.append(f"평균 영업이익률 {avg_margin_filter:.2f}% 이상")
+                st.warning(
+                    f"직전 {int(screening_quarters)}개 분기 동안 {', '.join(selected_conditions)}을 만족한 회사가 없습니다."
+                )
         else:
             status.update(label=f"✅ {len(screened_df)}개 회사 추출 완료", state="complete")
             st.markdown(
