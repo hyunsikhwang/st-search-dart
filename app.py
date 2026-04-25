@@ -806,8 +806,8 @@ st.markdown("""
     /* Input and Button Refinement */
     div[data-testid="stForm"] {
         border: 1px solid #eaeaea !important;
-        border-radius: 20px !important;
-        padding: 2rem !important;
+        border-radius: 18px !important;
+        padding: 1.1rem 1.1rem 0.8rem 1.1rem !important;
         background-color: #ffffff;
         box-shadow: 0 4px 12px rgba(0,0,0,0.03);
     }
@@ -815,8 +815,8 @@ st.markdown("""
     .control-card {
         background: #ffffff;
         border: 1px solid #edf1f5;
-        border-radius: 20px;
-        padding: 1.1rem 1.1rem 0.6rem 1.1rem;
+        border-radius: 18px;
+        padding: 0.8rem 0.9rem 0.15rem 0.9rem;
         height: 100%;
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
     }
@@ -832,38 +832,38 @@ st.markdown("""
         font-size: 0.76rem;
         font-weight: 700;
         letter-spacing: 0.02em;
-        margin-bottom: 0.7rem;
+        margin-bottom: 0.45rem;
     }
 
     .card-title {
-        font-size: 1.2rem;
+        font-size: 1.08rem;
         font-weight: 700;
         color: #111111;
-        margin-bottom: 0.35rem;
+        margin-bottom: 0.15rem;
         letter-spacing: -0.02em;
     }
 
     .card-subtitle {
-        font-size: 0.95rem;
+        font-size: 0.88rem;
         color: #6b7280;
-        line-height: 1.5;
-        margin-bottom: 1rem;
+        line-height: 1.35;
+        margin-bottom: 0.45rem;
     }
 
     .status-strip {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.85rem;
+        gap: 0.65rem;
         align-items: stretch;
-        margin: 1rem 0 0.6rem 0;
+        margin: 0.65rem 0 0.35rem 0;
     }
 
     .status-main {
-        flex: 0 0 220px;
+        flex: 0 0 200px;
         background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
         color: #ffffff;
-        border-radius: 18px;
-        padding: 1rem 1.1rem;
+        border-radius: 16px;
+        padding: 0.8rem 0.95rem;
     }
 
     .status-main-label {
@@ -873,7 +873,7 @@ st.markdown("""
     }
 
     .status-main-value {
-        font-size: 1.9rem;
+        font-size: 1.55rem;
         font-weight: 700;
         letter-spacing: -0.03em;
     }
@@ -888,48 +888,49 @@ st.markdown("""
         flex: 1 1 420px;
         background: #f8fafc;
         border: 1px solid #e8eef5;
-        border-radius: 18px;
-        padding: 1rem 1.1rem;
+        border-radius: 16px;
+        padding: 0.8rem 0.95rem;
     }
 
     .status-detail-label {
         font-size: 0.82rem;
         font-weight: 700;
         color: #475569;
-        margin-bottom: 0.6rem;
+        margin-bottom: 0.45rem;
     }
 
     .status-pills {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: 0.4rem;
     }
 
     .status-pill {
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
-        padding: 0.45rem 0.7rem;
+        padding: 0.34rem 0.58rem;
         border-radius: 999px;
         background: #ffffff;
         border: 1px solid #e5e7eb;
         color: #334155;
-        font-size: 0.83rem;
+        font-size: 0.79rem;
         font-weight: 600;
         white-space: nowrap;
     }
 
     .settings-note {
-        margin-top: 0.85rem;
-        padding-top: 0.85rem;
+        margin-top: 0.65rem;
+        padding-top: 0.65rem;
         border-top: 1px dashed #e5e7eb;
+        font-size: 0.84rem;
     }
 
     .stTextInput input {
         border-radius: 10px !important;
         border: 1px solid #e0e0e0 !important;
-        padding: 0.6rem 1rem !important;
-        font-size: 1rem !important;
+        padding: 0.42rem 0.8rem !important;
+        font-size: 0.96rem !important;
         background-color: #f9f9f9 !important;
         transition: all 0.2s ease;
     }
@@ -943,11 +944,11 @@ st.markdown("""
     .stButton button {
         border-radius: 10px !important;
         font-weight: 600 !important;
-        font-size: 1rem !important;
+        font-size: 0.96rem !important;
         background-color: #007aff !important;
         color: white !important;
         border: none !important;
-        padding: 0.6rem 1.5rem !important;
+        padding: 0.42rem 1rem !important;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
         height: 100% !important;
     }
@@ -1022,7 +1023,6 @@ else:
     )
 
 st.markdown('<div class="search-header">워크스페이스</div>', unsafe_allow_html=True)
-st.caption("기본 조회와 조건 검색을 한 화면에서 바로 실행할 수 있도록 상단 인터페이스를 재구성했습니다.")
 top_col1, top_col2 = st.columns([1.35, 1], gap="large")
 
 with top_col1:
@@ -1030,7 +1030,6 @@ with top_col1:
     <div class="control-card">
         <div class="card-eyebrow">PRIMARY FLOW</div>
         <div class="card-title">기업별 재무 조회</div>
-        <div class="card-subtitle">회사명과 기준 연월만 입력하면 최근 4년 재무 추이와 차트를 바로 확인할 수 있습니다.</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1048,7 +1047,6 @@ with top_col2:
     <div class="control-card">
         <div class="card-eyebrow">SCREENER</div>
         <div class="card-title">조건 검색</div>
-        <div class="card-subtitle">저장된 DuckDB 데이터를 기준으로 최근 N개 분기 연속 조건을 만족한 회사를 빠르게 추출합니다.</div>
     </div>
     """, unsafe_allow_html=True)
 
