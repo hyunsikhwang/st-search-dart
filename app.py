@@ -910,6 +910,18 @@ st.markdown("""
         gap: 0.3rem;
     }
 
+    .status-summary-line {
+        display: block;
+        color: #334155;
+        font-size: 0.8rem;
+        font-weight: 600;
+        line-height: 1.35;
+        white-space: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+
     .status-pill {
         display: inline-flex;
         align-items: center;
@@ -1095,23 +1107,16 @@ st.markdown("""
 
         .status-detail {
             overflow: hidden;
+            max-height: 3.4rem;
         }
 
         .status-detail-label {
             margin-bottom: 0.25rem;
         }
 
-        .status-pills {
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            overflow-y: hidden;
-            padding-bottom: 0.05rem;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .status-pill {
-            flex: 0 0 auto;
-            white-space: nowrap;
+        .status-summary-line {
+            max-height: 1.2rem;
+            line-height: 1.2;
         }
 
         .status-strip {
@@ -1134,12 +1139,12 @@ if not API_KEY:
 
 # 검색 폼 (사이드바 대신 메인 영역에 배치)
 total_stored_companies, storage_period_df = get_db_storage_status()
-storage_summary_html = ""
+storage_summary_text = ""
 if storage_period_df.empty:
-    storage_summary_html = '<span class="status-pill">아직 저장된 기준연월 정보가 없습니다</span>'
+    storage_summary_text = "아직 저장된 기준연월 정보가 없습니다"
 else:
-    storage_summary_html = "".join(
-        f'<span class="status-pill">{row["기준연월"]} <strong>{int(row["회사수"]):,}개</strong></span>'
+    storage_summary_text = " · ".join(
+        f'{row["기준연월"]}: {int(row["회사수"]):,}개'
         for _, row in storage_period_df.iterrows()
     )
 
@@ -1151,7 +1156,7 @@ st.markdown(f"""
     </div>
     <div class="status-detail">
         <div class="status-detail-label">기준연월별 저장 분포</div>
-        <div class="status-pills">{storage_summary_html}</div>
+        <div class="status-summary-line">{storage_summary_text}</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
