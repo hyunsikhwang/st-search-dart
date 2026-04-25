@@ -812,6 +812,119 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0,0,0,0.03);
     }
 
+    .control-card {
+        background: #ffffff;
+        border: 1px solid #edf1f5;
+        border-radius: 20px;
+        padding: 1.1rem 1.1rem 0.6rem 1.1rem;
+        height: 100%;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+    }
+
+    .card-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.32rem 0.6rem;
+        border-radius: 999px;
+        background: #f3f7ff;
+        color: #007aff;
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        margin-bottom: 0.7rem;
+    }
+
+    .card-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #111111;
+        margin-bottom: 0.35rem;
+        letter-spacing: -0.02em;
+    }
+
+    .card-subtitle {
+        font-size: 0.95rem;
+        color: #6b7280;
+        line-height: 1.5;
+        margin-bottom: 1rem;
+    }
+
+    .status-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+        align-items: stretch;
+        margin: 1rem 0 0.6rem 0;
+    }
+
+    .status-main {
+        flex: 0 0 220px;
+        background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+        color: #ffffff;
+        border-radius: 18px;
+        padding: 1rem 1.1rem;
+    }
+
+    .status-main-label {
+        font-size: 0.8rem;
+        opacity: 0.82;
+        margin-bottom: 0.2rem;
+    }
+
+    .status-main-value {
+        font-size: 1.9rem;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+    }
+
+    .status-main-caption {
+        font-size: 0.82rem;
+        opacity: 0.76;
+        margin-top: 0.2rem;
+    }
+
+    .status-detail {
+        flex: 1 1 420px;
+        background: #f8fafc;
+        border: 1px solid #e8eef5;
+        border-radius: 18px;
+        padding: 1rem 1.1rem;
+    }
+
+    .status-detail-label {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #475569;
+        margin-bottom: 0.6rem;
+    }
+
+    .status-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.45rem 0.7rem;
+        border-radius: 999px;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        color: #334155;
+        font-size: 0.83rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .settings-note {
+        margin-top: 0.85rem;
+        padding-top: 0.85rem;
+        border-top: 1px dashed #e5e7eb;
+    }
+
     .stTextInput input {
         border-radius: 10px !important;
         border: 1px solid #e0e0e0 !important;
@@ -862,6 +975,12 @@ st.markdown("""
         font-weight: 600 !important;
         color: #666666 !important;
     }
+
+    @media (max-width: 900px) {
+        .status-strip {
+            flex-direction: column;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -893,24 +1012,84 @@ def is_mobile():
         return False
 
 # 검색 폼 (사이드바 대신 메인 영역에 배치)
-st.markdown('<div class="search-header">🔍 검색 설정</div>', unsafe_allow_html=True)
+total_stored_companies, storage_period_df = get_db_storage_status()
+storage_summary_html = ""
+if storage_period_df.empty:
+    storage_summary_html = '<span class="status-pill">아직 저장된 기준연월 정보가 없습니다</span>'
+else:
+    storage_summary_html = "".join(
+        f'<span class="status-pill">{row["기준연월"]} <strong>{int(row["회사수"]):,}개</strong></span>'
+        for _, row in storage_period_df.iterrows()
+    )
 
-with st.form(key="search_form"):
-    # [수정] vertical_alignment="bottom" 적용
-    # 텍스트 인풋(라벨 있음)과 버튼(라벨 없음)의 밑선을 맞춤
-    col1, col2, col3 = st.columns([3, 2, 1], vertical_alignment="bottom")
-    
-    with col1:
-        company_name = st.text_input("회사명", placeholder="예: 삼성전자", key="company_input")
-    with col2:
-        year_month = st.text_input("기준 연월 (YYYYMM)", value="202512", placeholder="202512", key="year_month_input")
-    with col3:
-        search_btn = st.form_submit_button("조회하기", type="primary", use_container_width=True, key="search_button")
+st.markdown('<div class="search-header">워크스페이스</div>', unsafe_allow_html=True)
+st.caption("기본 조회와 조건 검색을 한 화면에서 바로 실행할 수 있도록 상단 인터페이스를 재구성했습니다.")
+top_col1, top_col2 = st.columns([1.35, 1], gap="large")
 
-st.markdown("---")
-st.caption("Data source: Open DART API")
+with top_col1:
+    st.markdown("""
+    <div class="control-card">
+        <div class="card-eyebrow">PRIMARY FLOW</div>
+        <div class="card-title">기업별 재무 조회</div>
+        <div class="card-subtitle">회사명과 기준 연월만 입력하면 최근 4년 재무 추이와 차트를 바로 확인할 수 있습니다.</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-with st.expander("⚙️ 설정"):
+    with st.form(key="search_form"):
+        col1, col2, col3 = st.columns([3, 2, 1], vertical_alignment="bottom")
+        with col1:
+            company_name = st.text_input("회사명", placeholder="예: 삼성전자", key="company_input")
+        with col2:
+            year_month = st.text_input("기준 연월 (YYYYMM)", value="202512", placeholder="202512", key="year_month_input")
+        with col3:
+            search_btn = st.form_submit_button("조회하기", type="primary", use_container_width=True, key="search_button")
+
+with top_col2:
+    st.markdown("""
+    <div class="control-card">
+        <div class="card-eyebrow">SCREENER</div>
+        <div class="card-title">조건 검색</div>
+        <div class="card-subtitle">저장된 DuckDB 데이터를 기준으로 최근 N개 분기 연속 조건을 만족한 회사를 빠르게 추출합니다.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.form(key="screening_form"):
+        filter_col1, filter_col2 = st.columns(2, vertical_alignment="bottom")
+        with filter_col1:
+            screening_quarters = st.number_input(
+                "직전 분기 수",
+                min_value=1,
+                max_value=12,
+                value=4,
+                step=1,
+                key="screening_quarters"
+            )
+        with filter_col2:
+            screening_margin = st.number_input(
+                "최소 영업이익률 (%)",
+                min_value=-100.0,
+                max_value=100.0,
+                value=10.0,
+                step=0.5,
+                key="screening_margin"
+            )
+        screening_btn = st.form_submit_button("리스트 추출", type="primary", use_container_width=True, key="screening_button")
+
+st.markdown(f"""
+<div class="status-strip">
+    <div class="status-main">
+        <div class="status-main-label">DB 저장 현황</div>
+        <div class="status-main-value">{total_stored_companies:,}개</div>
+        <div class="status-main-caption">현재 재무 데이터가 저장된 회사 수</div>
+    </div>
+    <div class="status-detail">
+        <div class="status-detail-label">기준연월별 저장 분포</div>
+        <div class="status-pills">{storage_summary_html}</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+with st.expander("⚙️ 관리 및 데이터 안내"):
     if st.button("🔄 회사 고유번호(corpCode.xml) 강제 갱신"):
         with st.spinner("Open DART에서 데이터를 가져오고 있습니다..."):
             if sync_corp_codes_from_api(API_KEY):
@@ -918,50 +1097,7 @@ with st.expander("⚙️ 설정"):
                 st.cache_data.clear()
             else:
                 st.error("회사 고유번호 업데이트에 실패했습니다.")
-
-total_stored_companies, storage_period_df = get_db_storage_status()
-
-st.markdown("#### DB 저장 현황")
-summary_col1, summary_col2 = st.columns([1, 2])
-with summary_col1:
-    st.metric("총 저장 회사 수", f"{total_stored_companies:,}개")
-with summary_col2:
-    if storage_period_df.empty:
-        st.caption("기준연월별 저장 현황이 아직 없습니다.")
-    else:
-        period_summary_text = " · ".join(
-            f"{row['기준연월']}: {int(row['회사수']):,}개"
-            for _, row in storage_period_df.iterrows()
-        )
-        st.caption(period_summary_text)
-
-st.markdown('<div class="search-header">📋 조건 검색</div>', unsafe_allow_html=True)
-
-with st.form(key="screening_form"):
-    filter_col1, filter_col2, filter_col3 = st.columns([2, 2, 1], vertical_alignment="bottom")
-
-    with filter_col1:
-        screening_quarters = st.number_input(
-            "직전 분기 수",
-            min_value=1,
-            max_value=12,
-            value=4,
-            step=1,
-            key="screening_quarters"
-        )
-    with filter_col2:
-        screening_margin = st.number_input(
-            "최소 영업이익률 (%)",
-            min_value=-100.0,
-            max_value=100.0,
-            value=10.0,
-            step=0.5,
-            key="screening_margin"
-        )
-    with filter_col3:
-        screening_btn = st.form_submit_button("리스트 추출", type="primary", use_container_width=True, key="screening_button")
-
-st.caption("저장된 DuckDB 데이터만 대상으로 최근 N개 분기의 영업이익률 조건을 만족한 회사를 추출합니다.")
+    st.markdown('<div class="settings-note">Data source: Open DART API · 조건 검색은 저장된 DB 데이터만 사용합니다.</div>', unsafe_allow_html=True)
 
 if screening_btn:
     with st.status("조건 검색을 실행하고 있습니다...", expanded=True) as status:
