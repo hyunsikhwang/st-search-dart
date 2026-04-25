@@ -816,7 +816,7 @@ st.markdown("""
         background: #ffffff;
         border: 1px solid #edf1f5;
         border-radius: 18px;
-        padding: 0.8rem 0.9rem 0.15rem 0.9rem;
+        padding: 0.85rem 0.95rem 0.3rem 0.95rem;
         height: 100%;
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
     }
@@ -839,8 +839,9 @@ st.markdown("""
         font-size: 1.08rem;
         font-weight: 700;
         color: #111111;
-        margin-bottom: 0.15rem;
+        margin-bottom: 0.2rem;
         letter-spacing: -0.02em;
+        line-height: 1.25;
     }
 
     .card-subtitle {
@@ -959,6 +960,10 @@ st.markdown("""
         box-shadow: 0 6px 15px rgba(0,122,255,0.25) !important;
     }
 
+    div[data-testid="stForm"] [data-testid="stHorizontalBlock"] {
+        gap: 0.7rem !important;
+    }
+
     /* Hide Streamlit components */
     #MainMenu, footer, header, .stDeployButton {
         display: none !important;
@@ -978,6 +983,62 @@ st.markdown("""
     }
 
     @media (max-width: 900px) {
+        .hero-container {
+            padding: 1.8rem 0 1.2rem 0;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-title {
+            font-size: 2rem;
+        }
+
+        .search-header {
+            margin-bottom: 0.75rem;
+        }
+
+        .control-card {
+            padding: 0.8rem 0.85rem 0.35rem 0.85rem;
+            min-height: auto;
+        }
+
+        .card-eyebrow {
+            margin-bottom: 0.35rem;
+            font-size: 0.72rem;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+            line-height: 1.3;
+            word-break: keep-all;
+        }
+
+        .card-subtitle {
+            font-size: 0.82rem;
+            margin-bottom: 0.35rem;
+        }
+
+        div[data-testid="stForm"] {
+            padding: 0.9rem 0.9rem 0.7rem 0.9rem !important;
+        }
+
+        .status-main {
+            flex-basis: auto;
+        }
+
+        .status-main-value {
+            font-size: 1.4rem;
+        }
+
+        .status-detail,
+        .status-main {
+            padding: 0.75rem 0.85rem;
+        }
+
+        .status-pill {
+            white-space: normal;
+        }
+
         .status-strip {
             flex-direction: column;
         }
@@ -1012,6 +1073,7 @@ def is_mobile():
         return False
 
 # 검색 폼 (사이드바 대신 메인 영역에 배치)
+mobile_device = is_mobile()
 total_stored_companies, storage_period_df = get_db_storage_status()
 storage_summary_html = ""
 if storage_period_df.empty:
@@ -1023,7 +1085,11 @@ else:
     )
 
 st.markdown('<div class="search-header">워크스페이스</div>', unsafe_allow_html=True)
-top_col1, top_col2 = st.columns([1.35, 1], gap="large")
+if mobile_device:
+    top_col1 = st.container()
+    top_col2 = st.container()
+else:
+    top_col1, top_col2 = st.columns([1.35, 1], gap="large")
 
 with top_col1:
     st.markdown("""
@@ -1034,13 +1100,18 @@ with top_col1:
     """, unsafe_allow_html=True)
 
     with st.form(key="search_form"):
-        col1, col2, col3 = st.columns([3, 2, 1], vertical_alignment="bottom")
-        with col1:
+        if mobile_device:
             company_name = st.text_input("회사명", placeholder="예: 삼성전자", key="company_input")
-        with col2:
             year_month = st.text_input("기준 연월 (YYYYMM)", value="202512", placeholder="202512", key="year_month_input")
-        with col3:
             search_btn = st.form_submit_button("조회하기", type="primary", use_container_width=True, key="search_button")
+        else:
+            col1, col2, col3 = st.columns([3, 2, 1], vertical_alignment="bottom")
+            with col1:
+                company_name = st.text_input("회사명", placeholder="예: 삼성전자", key="company_input")
+            with col2:
+                year_month = st.text_input("기준 연월 (YYYYMM)", value="202512", placeholder="202512", key="year_month_input")
+            with col3:
+                search_btn = st.form_submit_button("조회하기", type="primary", use_container_width=True, key="search_button")
 
 with top_col2:
     st.markdown("""
@@ -1051,8 +1122,7 @@ with top_col2:
     """, unsafe_allow_html=True)
 
     with st.form(key="screening_form"):
-        filter_col1, filter_col2 = st.columns(2, vertical_alignment="bottom")
-        with filter_col1:
+        if mobile_device:
             screening_quarters = st.number_input(
                 "직전 분기 수",
                 min_value=1,
@@ -1061,7 +1131,6 @@ with top_col2:
                 step=1,
                 key="screening_quarters"
             )
-        with filter_col2:
             screening_margin = st.number_input(
                 "최소 영업이익률 (%)",
                 min_value=-100.0,
@@ -1070,6 +1139,26 @@ with top_col2:
                 step=0.5,
                 key="screening_margin"
             )
+        else:
+            filter_col1, filter_col2 = st.columns(2, vertical_alignment="bottom")
+            with filter_col1:
+                screening_quarters = st.number_input(
+                    "직전 분기 수",
+                    min_value=1,
+                    max_value=12,
+                    value=4,
+                    step=1,
+                    key="screening_quarters"
+                )
+            with filter_col2:
+                screening_margin = st.number_input(
+                    "최소 영업이익률 (%)",
+                    min_value=-100.0,
+                    max_value=100.0,
+                    value=10.0,
+                    step=0.5,
+                    key="screening_margin"
+                )
         screening_btn = st.form_submit_button("리스트 추출", type="primary", use_container_width=True, key="screening_button")
 
 st.markdown(f"""
