@@ -703,6 +703,170 @@ def screen_companies_by_margin(
         ascending=[False, False, True]
     ).reset_index(drop=True)
 
+def render_financial_analysis(company_name: str, raw_df: pd.DataFrame):
+    """기업별 재무 조회 결과 차트와 표를 렌더링한다."""
+    view_df = process_dataframe_for_view(raw_df)
+
+    st.markdown(
+        f"### 🏢 {company_name} <small style='color: #666; font-size: 0.6em;'>재무 실적 분석</small>",
+        unsafe_allow_html=True
+    )
+
+    gt_table = (
+        gt.GT(view_df)
+        .fmt_number(
+            columns=["매출액", "영업이익"],
+            decimals=0,
+            use_seps=True
+        )
+        .fmt_number(
+            columns=["영업이익률"],
+            decimals=2
+        )
+        .fmt(
+            columns=["영업이익률"],
+            fns=lambda x: f"{x:.2f}%"
+        )
+        .tab_style(
+            style=[
+                gt.style.text(weight="600", color="#111111"),
+                gt.style.fill(color="#ffffff"),
+            ],
+            locations=gt.loc.column_labels()
+        )
+        .tab_style(
+            style=[
+                gt.style.borders(sides="bottom", color="#f0f0f0", weight="1px"),
+                gt.style.text(color="#1a1a1a")
+            ],
+            locations=gt.loc.body()
+        )
+        .tab_style(
+            style=[
+                gt.style.text(weight="600", color="#007aff"),
+            ],
+            locations=gt.loc.body(columns=["기간"])
+        )
+        .tab_style(
+            style=[
+                gt.style.text(weight="500")
+            ],
+            locations=gt.loc.body(columns=["매출액", "영업이익"])
+        )
+        .tab_options(
+            table_font_size="13px",
+            table_width="100%",
+            column_labels_font_size="14px",
+            table_border_top_style="none",
+            table_border_bottom_style="none",
+            column_labels_border_top_style="none",
+            column_labels_border_bottom_width="2px",
+            column_labels_border_bottom_color="#111111",
+            table_font_names="Inter",
+            row_striping_include_table_body=True,
+            row_striping_background_color="#f9f9f9"
+        )
+    )
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=view_df['기간'],
+        y=view_df['영업이익률'],
+        name='영업이익률 (%)',
+        mode='lines+markers',
+        line=dict(color='#007aff', width=3, shape='spline'),
+        marker=dict(size=8, color='#ffffff', line=dict(color='#007aff', width=2), symbol='circle'),
+        yaxis='y',
+        hovertemplate='<b>%{x}</b><br>영업이익률: %{y:.2f}%<extra></extra>'
+    ))
+    fig.add_trace(go.Bar(
+        x=view_df['기간'],
+        y=view_df['매출액'],
+        name='매출액 (백만)',
+        marker=dict(color='#e5e5ea', opacity=0.8, line=dict(width=0)),
+        yaxis='y2',
+        hovertemplate='<b>%{x}</b><br>매출액: %{y:,.0f}백만<extra></extra>'
+    ))
+    fig.add_trace(go.Bar(
+        x=view_df['기간'],
+        y=view_df['영업이익'],
+        name='영업이익 (백만)',
+        marker=dict(color='#34c759', opacity=0.8, line=dict(width=0)),
+        yaxis='y2',
+        hovertemplate='<b>%{x}</b><br>영업이익: %{y:,.0f}백만<extra></extra>'
+    ))
+
+    fig.update_layout(
+        title=dict(
+            text='📈 핵심 재무지표 추이 분석',
+            font=dict(size=18, color='#111111', family='Inter')
+        ),
+        hovermode='x unified',
+        plot_bgcolor='rgba(252,252,252,0.5)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        margin=dict(l=50, r=50, t=100, b=50),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.05,
+            xanchor="right",
+            x=1,
+            font=dict(size=11, color='#666666')
+        ),
+        xaxis=dict(
+            title='',
+            showgrid=False,
+            tickfont=dict(size=11, color='#8e8e93'),
+            linecolor='#eaeaea'
+        ),
+        yaxis=dict(
+            title='영업이익률 (%)',
+            side='left',
+            showgrid=True,
+            gridcolor='#f2f2f7',
+            ticksuffix='%',
+            tickfont=dict(size=11, color='#007aff'),
+            range=[min(0, view_df['영업이익률'].min() * 1.5), max(view_df['영업이익률'].max() * 1.5, 10)]
+        ),
+        yaxis2=dict(
+            title='금액 (백만)',
+            side='right',
+            overlaying='y',
+            showgrid=False,
+            tickfont=dict(size=11, color='#8e8e93'),
+            tickformat=',.0f'
+        ),
+        bargap=0.35,
+        height=500,
+        font=dict(family='Inter, sans-serif')
+    )
+
+    actual_max = view_df['영업이익률'].max()
+    actual_min = view_df['영업이익률'].min()
+
+    fig.add_hline(
+        y=actual_max,
+        line_dash="dot",
+        line_color="#2ECC71",
+        line_width=1.5,
+        annotation_text=f"최대: {actual_max:.1f}%",
+        annotation_position="right",
+        annotation_font=dict(color='#2ECC71', size=10)
+    )
+    fig.add_hline(
+        y=actual_min,
+        line_dash="dot",
+        line_color="#2ECC71",
+        line_width=1.5,
+        annotation_text=f"최소: {actual_min:.1f}%",
+        annotation_position="right",
+        annotation_font=dict(color='#2ECC71', size=10)
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+    st.divider()
+    st.html(gt_table.as_raw_html())
+
 @st.cache_data(ttl=300)
 def get_db_storage_status() -> tuple[int, pd.DataFrame]:
     """DB에 저장된 회사 수와 기준연월별 저장 현황을 요약한다."""
@@ -1231,6 +1395,8 @@ if screening_btn:
             status.update(label="❌ 조건 선택 필요", state="error")
             st.warning("최소 영업이익률 또는 평균 영업이익률 중 하나 이상을 선택해주세요.")
             screened_df = pd.DataFrame()
+            st.session_state.pop("screening_results_df", None)
+            st.session_state.pop("screening_result_quarters", None)
         else:
             screened_df = screen_companies_by_margin(
                 int(screening_quarters),
@@ -1241,6 +1407,8 @@ if screening_btn:
         if screened_df.empty:
             if min_margin_filter is not None or avg_margin_filter is not None:
                 status.update(label="❌ 조건을 만족하는 회사 없음", state="error")
+                st.session_state.pop("screening_results_df", None)
+                st.session_state.pop("screening_result_quarters", None)
                 selected_conditions = []
                 if min_margin_filter is not None:
                     selected_conditions.append(f"최소 영업이익률 {min_margin_filter:.2f}% 이상")
@@ -1251,27 +1419,88 @@ if screening_btn:
                 )
         else:
             status.update(label=f"✅ {len(screened_df)}개 회사 추출 완료", state="complete")
-            st.markdown(
-                f"### 📋 조건 검색 결과 <small style='color: #666; font-size: 0.6em;'>{len(screened_df)}개 회사</small>",
-                unsafe_allow_html=True
-            )
-            st.dataframe(
-                screened_df,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "회사명": st.column_config.TextColumn("회사명", width="medium"),
-                    "종목코드": st.column_config.TextColumn("종목코드", width="small"),
-                    "최근기준분기": st.column_config.TextColumn("최근 기준분기", width="small"),
-                    "최근분기매출액_백만": st.column_config.NumberColumn("최근 분기 매출액(백만)", format="%.0f"),
-                    "최근분기영업이익_백만": st.column_config.NumberColumn("최근 분기 영업이익(백만)", format="%.0f"),
-                    "최근분기영업이익률": st.column_config.NumberColumn("최근 분기 영업이익률(%)", format="%.2f"),
-                    "최소영업이익률": st.column_config.NumberColumn(f"최근 {int(screening_quarters)}개 분기 최소 영업이익률(%)", format="%.2f"),
-                    "평균영업이익률": st.column_config.NumberColumn(f"최근 {int(screening_quarters)}개 분기 평균 영업이익률(%)", format="%.2f"),
-                    "최근분기이력": st.column_config.TextColumn("최근 분기 이력", width="large")
-                }
-            )
-            st.caption("최근 분기 이력은 최신 분기부터 과거 순으로 표시됩니다.")
+            st.session_state["screening_results_df"] = screened_df
+            st.session_state["screening_result_quarters"] = int(screening_quarters)
+
+screening_results_df = st.session_state.get("screening_results_df")
+if isinstance(screening_results_df, pd.DataFrame) and not screening_results_df.empty:
+    result_quarters = st.session_state.get("screening_result_quarters", int(screening_quarters))
+    st.markdown(
+        f"### 📋 조건 검색 결과 <small style='color: #666; font-size: 0.6em;'>{len(screening_results_df)}개 회사</small>",
+        unsafe_allow_html=True
+    )
+
+    dataframe_event = None
+    try:
+        dataframe_event = st.dataframe(
+            screening_results_df,
+            use_container_width=True,
+            hide_index=True,
+            on_select="rerun",
+            selection_mode="single-row",
+            key="screening_results_table",
+            column_config={
+                "회사명": st.column_config.TextColumn("회사명", width="medium"),
+                "종목코드": st.column_config.TextColumn("종목코드", width="small"),
+                "최근기준분기": st.column_config.TextColumn("최근 기준분기", width="small"),
+                "최근분기매출액_백만": st.column_config.NumberColumn("최근 분기 매출액(백만)", format="%.0f"),
+                "최근분기영업이익_백만": st.column_config.NumberColumn("최근 분기 영업이익(백만)", format="%.0f"),
+                "최근분기영업이익률": st.column_config.NumberColumn("최근 분기 영업이익률(%)", format="%.2f"),
+                "최소영업이익률": st.column_config.NumberColumn(f"최근 {int(result_quarters)}개 분기 최소 영업이익률(%)", format="%.2f"),
+                "평균영업이익률": st.column_config.NumberColumn(f"최근 {int(result_quarters)}개 분기 평균 영업이익률(%)", format="%.2f"),
+                "최근분기이력": st.column_config.TextColumn("최근 분기 이력", width="large")
+            }
+        )
+    except TypeError:
+        st.dataframe(
+            screening_results_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "회사명": st.column_config.TextColumn("회사명", width="medium"),
+                "종목코드": st.column_config.TextColumn("종목코드", width="small"),
+                "최근기준분기": st.column_config.TextColumn("최근 기준분기", width="small"),
+                "최근분기매출액_백만": st.column_config.NumberColumn("최근 분기 매출액(백만)", format="%.0f"),
+                "최근분기영업이익_백만": st.column_config.NumberColumn("최근 분기 영업이익(백만)", format="%.0f"),
+                "최근분기영업이익률": st.column_config.NumberColumn("최근 분기 영업이익률(%)", format="%.2f"),
+                "최소영업이익률": st.column_config.NumberColumn(f"최근 {int(result_quarters)}개 분기 최소 영업이익률(%)", format="%.2f"),
+                "평균영업이익률": st.column_config.NumberColumn(f"최근 {int(result_quarters)}개 분기 평균 영업이익률(%)", format="%.2f"),
+                "최근분기이력": st.column_config.TextColumn("최근 분기 이력", width="large")
+            }
+        )
+        st.caption("현재 Streamlit 버전에서는 행 선택 이벤트를 지원하지 않습니다.")
+
+    st.caption("최근 분기 이력은 최신 분기부터 과거 순으로 표시됩니다.")
+
+    selected_rows = []
+    if dataframe_event is not None:
+        selection = getattr(dataframe_event, "selection", None)
+        if selection is not None:
+            selected_rows = getattr(selection, "rows", [])
+        elif isinstance(dataframe_event, dict):
+            selected_rows = dataframe_event.get("selection", {}).get("rows", [])
+
+    if selected_rows:
+        selected_row = screening_results_df.iloc[selected_rows[0]]
+        selected_company_name = str(selected_row["회사명"])
+        selected_corp_code = str(selected_row["corp_code"]).zfill(8)
+
+        st.divider()
+        if not year_month.isdigit() or len(year_month) != 6:
+            st.warning("선택 기업의 재무 조회를 출력하려면 기업별 재무 조회 탭의 기준 연월을 YYYYMM 형식으로 입력해주세요.")
+        else:
+            with st.status(f"{selected_company_name} 재무 데이터를 조회하고 있습니다...", expanded=False) as detail_status:
+                try:
+                    selected_raw_df = collect_financials(API_KEY, selected_corp_code, int(year_month))
+                    if selected_raw_df.empty:
+                        detail_status.update(label="❌ 데이터 없음", state="error")
+                        st.warning(f"{selected_company_name}의 재무 데이터를 찾을 수 없습니다.")
+                    else:
+                        detail_status.update(label="✅ 선택 기업 조회 완료", state="complete")
+                        render_financial_analysis(selected_company_name, selected_raw_df)
+                except Exception as e:
+                    detail_status.update(label="❌ 오류 발생", state="error")
+                    st.error(f"선택 기업 조회 중 오류가 발생했습니다: {e}")
 
 if search_btn and company_name and year_month:
     if not year_month.isdigit() or len(year_month) != 6:
