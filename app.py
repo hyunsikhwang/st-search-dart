@@ -1090,11 +1090,28 @@ st.markdown("""
 
         .status-detail,
         .status-main {
-            padding: 0.75rem 0.85rem;
+            padding: 0.58rem 0.75rem;
+        }
+
+        .status-detail {
+            overflow: hidden;
+        }
+
+        .status-detail-label {
+            margin-bottom: 0.25rem;
+        }
+
+        .status-pills {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding-bottom: 0.05rem;
+            -webkit-overflow-scrolling: touch;
         }
 
         .status-pill {
-            white-space: normal;
+            flex: 0 0 auto;
+            white-space: nowrap;
         }
 
         .status-strip {
