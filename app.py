@@ -988,7 +988,6 @@ st.markdown("""
 st.markdown("""
 <div class="hero-container">
     <div class="hero-title">📈 Search DART</div>
-    <div class="hero-subtitle">Value Horizon's Intelligent Corporate Analysis Engine.<br>Visualize key financial trends over the last 4 years based on real-time DART filings.</div>
 </div>
 """, unsafe_allow_html=True)
 
