@@ -311,29 +311,35 @@ def adjust_q4_values(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty or '분기' not in df.columns:
         return df
 
-    q4_data = df[df['분기'] == 4].copy()
-    if q4_data.empty:
+    q4_mask = df['분기'] == 4
+    if not q4_mask.any():
         return df
 
-    for year in q4_data['년도'].unique():
-        q1_q3_data = df[(df['년도'] == year) & df['분기'].isin([1, 2, 3])]
-        if q1_q3_data.empty:
-            continue
+    group_cols = [col for col in ['corp_code', '구분'] if col in df.columns]
+    merge_keys = group_cols + ['년도', '항목']
 
-        q1_q2_q3_sum = {}
-        for item in q1_q3_data['항목'].unique():
-            for fs_div in q1_q3_data['구분'].unique():
-                item_sum = q1_q3_data[(q1_q3_data['항목'] == item) & (q1_q3_data['구분'] == fs_div)]['thstrm_amount'].sum()
-                q1_q2_q3_sum[(year, item, fs_div)] = item_sum
+    q1_q3_sum = (
+        df[df['분기'].isin([1, 2, 3])]
+        .groupby(merge_keys, dropna=False)['thstrm_amount']
+        .sum()
+        .rename('q1_q3_sum')
+        .reset_index()
+    )
 
-        year_q4_data = df[(df['년도'] == year) & (df['분기'] == 4)]
-        for idx, row in year_q4_data.iterrows():
-            item = row['항목']
-            fs_div = row['구분']
-            if (year, item, fs_div) in q1_q2_q3_sum:
-                df.at[idx, 'thstrm_amount'] = row['thstrm_amount'] - q1_q2_q3_sum[(year, item, fs_div)]
+    if q1_q3_sum.empty:
+        return df
 
-    return df
+    adjusted_df = df.copy()
+    q4_rows = adjusted_df.loc[q4_mask].copy()
+    q4_with_sum = q4_rows.merge(q1_q3_sum, on=merge_keys, how='left')
+    has_prior_quarters = q4_with_sum['q1_q3_sum'].notna()
+
+    adjusted_df.loc[q4_rows.index[has_prior_quarters], 'thstrm_amount'] = (
+        q4_with_sum.loc[has_prior_quarters, 'thstrm_amount']
+        - q4_with_sum.loc[has_prior_quarters, 'q1_q3_sum']
+    ).values
+
+    return adjusted_df
 
 # ==========================================
 # 4. Core Logic (Streamlit Status 연동)
@@ -542,6 +548,151 @@ def process_dataframe_for_view(df: pd.DataFrame) -> pd.DataFrame:
     
     return result_df
 
+def screen_companies_by_margin(num_quarters: int, min_margin_pct: float) -> pd.DataFrame:
+    """DB에 저장된 전체 회사 데이터 중 최근 N개 분기 영업이익률 조건을 만족하는 회사를 찾는다."""
+    try:
+        if MD_TOKEN:
+            conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+            conn.execute("USE dart_financials")
+        else:
+            conn = duckdb.connect(DB_PATH)
+
+        query = """
+            WITH prioritized AS (
+                SELECT
+                    cf.corp_code,
+                    COALESCE(ps.corp_name, cc.corp_name) AS corp_name,
+                    cc.stock_code,
+                    cf.year,
+                    cf.quarter,
+                    cf.fs_div,
+                    cf.account_id,
+                    cf.thstrm_amount,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY cf.corp_code, cf.year, cf.quarter, cf.account_id
+                        ORDER BY CASE WHEN cf.fs_div = 'CFS' THEN 0 ELSE 1 END, cf.fs_div
+                    ) AS fs_rank
+                FROM cached_financials cf
+                LEFT JOIN processing_status ps ON cf.corp_code = ps.corp_code
+                LEFT JOIN corp_codes cc ON cf.corp_code = cc.corp_code
+                WHERE cf.account_id IN ('ifrs-full_Revenue', 'dart_OperatingIncomeLoss')
+            )
+            SELECT
+                corp_code,
+                corp_name,
+                stock_code,
+                year AS 년도,
+                quarter AS 분기,
+                CASE WHEN fs_div = 'CFS' THEN '연결' ELSE '별도' END AS 구분,
+                account_id,
+                thstrm_amount
+            FROM prioritized
+            WHERE fs_rank = 1
+        """
+        raw_df = conn.execute(query).df()
+        conn.close()
+    except Exception as e:
+        st.error(f"조건 검색 데이터를 불러오는 중 오류가 발생했습니다: {e}")
+        return pd.DataFrame()
+
+    if raw_df.empty:
+        return pd.DataFrame()
+
+    raw_df['항목'] = raw_df['account_id'].map({
+        'ifrs-full_Revenue': '매출액',
+        'dart_OperatingIncomeLoss': '영업이익'
+    })
+    raw_df['corp_name'] = raw_df['corp_name'].fillna(raw_df['corp_code'])
+
+    adjusted_df = adjust_q4_values(
+        raw_df[['corp_code', 'corp_name', 'stock_code', '구분', 'thstrm_amount', '년도', '분기', '항목']].copy()
+    )
+
+    quarterly_df = (
+        adjusted_df.pivot_table(
+            index=['corp_code', 'corp_name', 'stock_code', '년도', '분기'],
+            columns='항목',
+            values='thstrm_amount',
+            aggfunc='first'
+        )
+        .reset_index()
+        .sort_values(by=['corp_code', '년도', '분기'], ascending=[True, False, False])
+    )
+
+    if quarterly_df.empty or '매출액' not in quarterly_df.columns or '영업이익' not in quarterly_df.columns:
+        return pd.DataFrame()
+
+    quarterly_df = quarterly_df.dropna(subset=['매출액', '영업이익']).copy()
+    quarterly_df = quarterly_df[quarterly_df['매출액'] > 0].copy()
+    if quarterly_df.empty:
+        return pd.DataFrame()
+
+    quarterly_df['영업이익률'] = (quarterly_df['영업이익'] / quarterly_df['매출액']) * 100
+    quarterly_df['기간'] = quarterly_df.apply(lambda row: f"{int(row['년도'])}년 {int(row['분기'])}분기", axis=1)
+    quarterly_df['기간인덱스'] = (quarterly_df['년도'] * 4) + quarterly_df['분기'] - 1
+    quarterly_df['매출액(백만)'] = quarterly_df['매출액'] / 1000000
+    quarterly_df['영업이익(백만)'] = quarterly_df['영업이익'] / 1000000
+    quarterly_df['분기순번'] = quarterly_df.groupby('corp_code').cumcount() + 1
+
+    recent_df = quarterly_df[quarterly_df['분기순번'] <= num_quarters].copy()
+    if recent_df.empty:
+        return pd.DataFrame()
+
+    qualified_codes = (
+        recent_df.groupby('corp_code')
+        .agg(
+            분기수=('영업이익률', 'count'),
+            최소영업이익률=('영업이익률', 'min'),
+            최신기간인덱스=('기간인덱스', 'max'),
+            최저기간인덱스=('기간인덱스', 'min')
+        )
+        .reset_index()
+    )
+    qualified_codes = qualified_codes[
+        (qualified_codes['분기수'] == num_quarters)
+        & (qualified_codes['최소영업이익률'] >= min_margin_pct)
+        & ((qualified_codes['최신기간인덱스'] - qualified_codes['최저기간인덱스']) == (num_quarters - 1))
+    ]
+    if qualified_codes.empty:
+        return pd.DataFrame()
+
+    filtered_df = recent_df[recent_df['corp_code'].isin(qualified_codes['corp_code'])].copy()
+    summary_df = (
+        filtered_df.groupby(['corp_code', 'corp_name', 'stock_code'], dropna=False)
+        .agg(
+            최근기준분기=('기간', 'first'),
+            최근분기매출액_백만=('매출액(백만)', 'first'),
+            최근분기영업이익_백만=('영업이익(백만)', 'first'),
+            최근분기영업이익률=('영업이익률', 'first'),
+            최소영업이익률=('영업이익률', 'min'),
+            평균영업이익률=('영업이익률', 'mean')
+        )
+        .reset_index()
+    )
+    quarter_history = (
+        filtered_df.groupby('corp_code')
+        .apply(
+            lambda group: " | ".join(
+                f"{period} {margin:.2f}%"
+                for period, margin in zip(group['기간'], group['영업이익률'])
+            )
+        )
+        .rename('최근분기이력')
+        .reset_index()
+    )
+
+    result_df = summary_df.merge(quarter_history, on='corp_code', how='left')
+    result_df['stock_code'] = result_df['stock_code'].fillna('-')
+    result_df = result_df.rename(columns={
+        'corp_name': '회사명',
+        'stock_code': '종목코드'
+    })
+
+    return result_df.sort_values(
+        by=['최소영업이익률', '평균영업이익률', '회사명'],
+        ascending=[False, False, True]
+    ).reset_index(drop=True)
+
 # ==========================================
 # 5. UI Layout - Value Horizon Design System
 # ==========================================
@@ -720,6 +871,67 @@ with st.expander("⚙️ 설정"):
                 st.cache_data.clear()
             else:
                 st.error("회사 고유번호 업데이트에 실패했습니다.")
+
+st.markdown('<div class="search-header">📋 조건 검색</div>', unsafe_allow_html=True)
+
+with st.form(key="screening_form"):
+    filter_col1, filter_col2, filter_col3 = st.columns([2, 2, 1], vertical_alignment="bottom")
+
+    with filter_col1:
+        screening_quarters = st.number_input(
+            "직전 분기 수",
+            min_value=1,
+            max_value=12,
+            value=4,
+            step=1,
+            key="screening_quarters"
+        )
+    with filter_col2:
+        screening_margin = st.number_input(
+            "최소 영업이익률 (%)",
+            min_value=-100.0,
+            max_value=100.0,
+            value=10.0,
+            step=0.5,
+            key="screening_margin"
+        )
+    with filter_col3:
+        screening_btn = st.form_submit_button("리스트 추출", type="primary", use_container_width=True, key="screening_button")
+
+st.caption("저장된 DuckDB 데이터만 대상으로 최근 N개 분기의 영업이익률 조건을 만족한 회사를 추출합니다.")
+
+if screening_btn:
+    with st.status("조건 검색을 실행하고 있습니다...", expanded=True) as status:
+        screened_df = screen_companies_by_margin(int(screening_quarters), float(screening_margin))
+
+        if screened_df.empty:
+            status.update(label="❌ 조건을 만족하는 회사 없음", state="error")
+            st.warning(
+                f"직전 {int(screening_quarters)}개 분기 동안 영업이익률 {float(screening_margin):.2f}% 이상을 유지한 회사가 없습니다."
+            )
+        else:
+            status.update(label=f"✅ {len(screened_df)}개 회사 추출 완료", state="complete")
+            st.markdown(
+                f"### 📋 조건 검색 결과 <small style='color: #666; font-size: 0.6em;'>{len(screened_df)}개 회사</small>",
+                unsafe_allow_html=True
+            )
+            st.dataframe(
+                screened_df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "회사명": st.column_config.TextColumn("회사명", width="medium"),
+                    "종목코드": st.column_config.TextColumn("종목코드", width="small"),
+                    "최근기준분기": st.column_config.TextColumn("최근 기준분기", width="small"),
+                    "최근분기매출액_백만": st.column_config.NumberColumn("최근 분기 매출액(백만)", format="%.0f"),
+                    "최근분기영업이익_백만": st.column_config.NumberColumn("최근 분기 영업이익(백만)", format="%.0f"),
+                    "최근분기영업이익률": st.column_config.NumberColumn("최근 분기 영업이익률(%)", format="%.2f"),
+                    "최소영업이익률": st.column_config.NumberColumn(f"최근 {int(screening_quarters)}개 분기 최소 영업이익률(%)", format="%.2f"),
+                    "평균영업이익률": st.column_config.NumberColumn(f"최근 {int(screening_quarters)}개 분기 평균 영업이익률(%)", format="%.2f"),
+                    "최근분기이력": st.column_config.TextColumn("최근 분기 이력", width="large")
+                }
+            )
+            st.caption("최근 분기 이력은 최신 분기부터 과거 순으로 표시됩니다.")
 
 if search_btn and company_name and year_month:
     if not year_month.isdigit() or len(year_month) != 6:
