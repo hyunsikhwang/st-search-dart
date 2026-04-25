@@ -548,7 +548,7 @@ def process_dataframe_for_view(df: pd.DataFrame) -> pd.DataFrame:
     
     return result_df
 
-def screen_companies_by_margin(num_quarters: int, min_margin_pct: float) -> pd.DataFrame:
+def screen_companies_by_margin(num_quarters: int, min_margin_pct: float, avg_margin_pct: float) -> pd.DataFrame:
     """DB에 저장된 전체 회사 데이터 중 최근 N개 분기 영업이익률 조건을 만족하는 회사를 찾는다."""
     try:
         if MD_TOKEN:
@@ -643,6 +643,7 @@ def screen_companies_by_margin(num_quarters: int, min_margin_pct: float) -> pd.D
         .agg(
             분기수=('영업이익률', 'count'),
             최소영업이익률=('영업이익률', 'min'),
+            평균영업이익률=('영업이익률', 'mean'),
             최신기간인덱스=('기간인덱스', 'max'),
             최저기간인덱스=('기간인덱스', 'min')
         )
@@ -651,6 +652,7 @@ def screen_companies_by_margin(num_quarters: int, min_margin_pct: float) -> pd.D
     qualified_codes = qualified_codes[
         (qualified_codes['분기수'] == num_quarters)
         & (qualified_codes['최소영업이익률'] >= min_margin_pct)
+        & (qualified_codes['평균영업이익률'] >= avg_margin_pct)
         & ((qualified_codes['최신기간인덱스'] - qualified_codes['최저기간인덱스']) == (num_quarters - 1))
     ]
     if qualified_codes.empty:
@@ -1138,6 +1140,14 @@ with screen_tab:
             step=0.5,
             key="screening_margin"
         )
+        screening_avg_margin = st.number_input(
+            "평균 영업이익률 (%)",
+            min_value=-100.0,
+            max_value=100.0,
+            value=10.0,
+            step=0.5,
+            key="screening_avg_margin"
+        )
         screening_btn = st.form_submit_button("리스트 추출", type="primary", use_container_width=True, key="screening_button")
 
 st.markdown(f"""
@@ -1165,12 +1175,17 @@ with st.expander("⚙️ 관리 및 데이터 안내"):
 
 if screening_btn:
     with st.status("조건 검색을 실행하고 있습니다...", expanded=True) as status:
-        screened_df = screen_companies_by_margin(int(screening_quarters), float(screening_margin))
+        screened_df = screen_companies_by_margin(
+            int(screening_quarters),
+            float(screening_margin),
+            float(screening_avg_margin)
+        )
 
         if screened_df.empty:
             status.update(label="❌ 조건을 만족하는 회사 없음", state="error")
             st.warning(
-                f"직전 {int(screening_quarters)}개 분기 동안 영업이익률 {float(screening_margin):.2f}% 이상을 유지한 회사가 없습니다."
+                f"직전 {int(screening_quarters)}개 분기 동안 최소 영업이익률 {float(screening_margin):.2f}% 이상, "
+                f"평균 영업이익률 {float(screening_avg_margin):.2f}% 이상을 만족한 회사가 없습니다."
             )
         else:
             status.update(label=f"✅ {len(screened_df)}개 회사 추출 완료", state="complete")
