@@ -977,6 +977,30 @@ st.markdown("""
         gap: 0.7rem !important;
     }
 
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0.5rem;
+        background: #f8fafc;
+        border: 1px solid #edf1f5;
+        border-radius: 14px;
+        padding: 0.35rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        height: 2.35rem;
+        border-radius: 10px;
+        color: #475569;
+        font-weight: 700;
+        padding: 0 1rem;
+        background: transparent;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background: #ffffff;
+        color: #111111;
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+    }
+
     /* Hide Streamlit components */
     #MainMenu, footer, header, .stDeployButton {
         display: none !important;
@@ -1082,17 +1106,9 @@ else:
     )
 
 st.markdown('<div class="search-header">워크스페이스</div>', unsafe_allow_html=True)
-top_col1 = st.container()
-top_col2 = st.container()
+query_tab, screen_tab = st.tabs(["기업별 재무 조회", "조건 검색"])
 
-with top_col1:
-    st.markdown("""
-    <div class="control-card">
-        <div class="card-eyebrow">PRIMARY FLOW</div>
-        <div class="card-title">기업별 재무 조회</div>
-    </div>
-    """, unsafe_allow_html=True)
-
+with query_tab:
     with st.form(key="search_form"):
         company_name = st.text_input("회사명", placeholder="예: 삼성전자", key="company_input", label_visibility="visible")
         year_month = st.text_input(
@@ -1104,14 +1120,7 @@ with top_col1:
         )
         search_btn = st.form_submit_button("조회하기", type="primary", use_container_width=True, key="search_button")
 
-with top_col2:
-    st.markdown("""
-    <div class="control-card">
-        <div class="card-eyebrow">SCREENER</div>
-        <div class="card-title">조건 검색</div>
-    </div>
-    """, unsafe_allow_html=True)
-
+with screen_tab:
     with st.form(key="screening_form"):
         screening_quarters = st.number_input(
             "직전 분기 수",
