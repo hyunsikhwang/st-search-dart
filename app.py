@@ -860,7 +860,7 @@ st.markdown("""
     }
 
     .status-main {
-        flex: 0 0 200px;
+        flex: 0 0 280px;
         background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
         color: #ffffff;
         border-radius: 16px;
@@ -879,14 +879,8 @@ st.markdown("""
         letter-spacing: -0.03em;
     }
 
-    .status-main-caption {
-        font-size: 0.82rem;
-        opacity: 0.76;
-        margin-top: 0.2rem;
-    }
-
     .status-detail {
-        flex: 1 1 420px;
+        flex: 1 1 520px;
         background: #f8fafc;
         border: 1px solid #e8eef5;
         border-radius: 16px;
@@ -958,6 +952,25 @@ st.markdown("""
         background-color: #0063cc !important;
         transform: translateY(-1px);
         box-shadow: 0 6px 15px rgba(0,122,255,0.25) !important;
+    }
+
+    .stTextInput label,
+    .stNumberInput label {
+        display: block !important;
+        visibility: visible !important;
+        color: #111111 !important;
+        opacity: 1 !important;
+        font-weight: 600 !important;
+    }
+
+    .stTextInput label p,
+    .stNumberInput label p {
+        color: #111111 !important;
+        opacity: 1 !important;
+        font-size: 0.9rem !important;
+        line-height: 1.25 !important;
+        margin-bottom: 0.3rem !important;
+        word-break: keep-all;
     }
 
     div[data-testid="stForm"] [data-testid="stHorizontalBlock"] {
@@ -1057,23 +1070,7 @@ if not API_KEY:
     st.error("🚨 DART API Key가 설정되지 않았습니다. Streamlit Secrets에 `DART_API_KEY`를 설정해주세요.")
     st.stop()
 
-# 모바일 여부 감지 함수
-def is_mobile():
-    try:
-        from streamlit.runtime.scriptrunner import get_script_run_ctx
-        ctx = get_script_run_ctx()
-        if ctx is None:
-            return False
-        session_info = ctx.session_info
-        if session_info is None:
-            return False
-        user_agent = session_info.request.headers.get('User-Agent', '')
-        return 'Mobile' in user_agent or 'Android' in user_agent or 'iPhone' in user_agent
-    except:
-        return False
-
 # 검색 폼 (사이드바 대신 메인 영역에 배치)
-mobile_device = is_mobile()
 total_stored_companies, storage_period_df = get_db_storage_status()
 storage_summary_html = ""
 if storage_period_df.empty:
@@ -1085,11 +1082,8 @@ else:
     )
 
 st.markdown('<div class="search-header">워크스페이스</div>', unsafe_allow_html=True)
-if mobile_device:
-    top_col1 = st.container()
-    top_col2 = st.container()
-else:
-    top_col1, top_col2 = st.columns([1.35, 1], gap="large")
+top_col1 = st.container()
+top_col2 = st.container()
 
 with top_col1:
     st.markdown("""
@@ -1100,18 +1094,15 @@ with top_col1:
     """, unsafe_allow_html=True)
 
     with st.form(key="search_form"):
-        if mobile_device:
-            company_name = st.text_input("회사명", placeholder="예: 삼성전자", key="company_input")
-            year_month = st.text_input("기준 연월 (YYYYMM)", value="202512", placeholder="202512", key="year_month_input")
-            search_btn = st.form_submit_button("조회하기", type="primary", use_container_width=True, key="search_button")
-        else:
-            col1, col2, col3 = st.columns([3, 2, 1], vertical_alignment="bottom")
-            with col1:
-                company_name = st.text_input("회사명", placeholder="예: 삼성전자", key="company_input")
-            with col2:
-                year_month = st.text_input("기준 연월 (YYYYMM)", value="202512", placeholder="202512", key="year_month_input")
-            with col3:
-                search_btn = st.form_submit_button("조회하기", type="primary", use_container_width=True, key="search_button")
+        company_name = st.text_input("회사명", placeholder="예: 삼성전자", key="company_input", label_visibility="visible")
+        year_month = st.text_input(
+            "기준 연월 (YYYYMM)",
+            value="202512",
+            placeholder="202512",
+            key="year_month_input",
+            label_visibility="visible"
+        )
+        search_btn = st.form_submit_button("조회하기", type="primary", use_container_width=True, key="search_button")
 
 with top_col2:
     st.markdown("""
@@ -1122,43 +1113,22 @@ with top_col2:
     """, unsafe_allow_html=True)
 
     with st.form(key="screening_form"):
-        if mobile_device:
-            screening_quarters = st.number_input(
-                "직전 분기 수",
-                min_value=1,
-                max_value=12,
-                value=4,
-                step=1,
-                key="screening_quarters"
-            )
-            screening_margin = st.number_input(
-                "최소 영업이익률 (%)",
-                min_value=-100.0,
-                max_value=100.0,
-                value=10.0,
-                step=0.5,
-                key="screening_margin"
-            )
-        else:
-            filter_col1, filter_col2 = st.columns(2, vertical_alignment="bottom")
-            with filter_col1:
-                screening_quarters = st.number_input(
-                    "직전 분기 수",
-                    min_value=1,
-                    max_value=12,
-                    value=4,
-                    step=1,
-                    key="screening_quarters"
-                )
-            with filter_col2:
-                screening_margin = st.number_input(
-                    "최소 영업이익률 (%)",
-                    min_value=-100.0,
-                    max_value=100.0,
-                    value=10.0,
-                    step=0.5,
-                    key="screening_margin"
-                )
+        screening_quarters = st.number_input(
+            "직전 분기 수",
+            min_value=1,
+            max_value=12,
+            value=4,
+            step=1,
+            key="screening_quarters"
+        )
+        screening_margin = st.number_input(
+            "최소 영업이익률 (%)",
+            min_value=-100.0,
+            max_value=100.0,
+            value=10.0,
+            step=0.5,
+            key="screening_margin"
+        )
         screening_btn = st.form_submit_button("리스트 추출", type="primary", use_container_width=True, key="screening_button")
 
 st.markdown(f"""
@@ -1166,7 +1136,6 @@ st.markdown(f"""
     <div class="status-main">
         <div class="status-main-label">DB 저장 현황</div>
         <div class="status-main-value">{total_stored_companies:,}개</div>
-        <div class="status-main-caption">현재 재무 데이터가 저장된 회사 수</div>
     </div>
     <div class="status-detail">
         <div class="status-detail-label">기준연월별 저장 분포</div>
