@@ -17,6 +17,20 @@ import zipfile
 import io
 import xml.etree.ElementTree as ET
 
+def connect_motherduck():
+    """MotherDuck 연결을 한 곳에서 처리하고 확장 설치 오류를 명확히 보고합니다."""
+    try:
+        return duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+    except duckdb.Error as e:
+        message = str(e)
+        if "motherduck" in message.lower() and "Failed to download extension" in message:
+            raise RuntimeError(
+                "MotherDuck 확장 설치에 실패했습니다. "
+                "DuckDB Python 패키지 버전과 확장 저장소의 MotherDuck 바이너리 버전이 맞지 않을 수 있습니다. "
+                "requirements.txt의 duckdb 고정 버전을 확인하세요."
+            ) from e
+        raise
+
 def sync_corp_codes():
     """DART API에서 회사 코드를 가져와 DB에 저장합니다."""
     if not API_KEY:
@@ -48,7 +62,7 @@ def sync_corp_codes():
                 print(f"[Database] Preparing to insert {len(data_list)} records...", flush=True)
                 df = pd.DataFrame(data_list, columns=['corp_code', 'corp_name', 'stock_code'])
                 
-                conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+                conn = connect_motherduck()
                 conn.execute("CREATE DATABASE IF NOT EXISTS dart_financials")
                 conn.execute("USE dart_financials")
                 conn.execute("""
@@ -79,7 +93,7 @@ def get_unprocessed_companies():
     """아직 처리되지 않았거나 최신 기준월보다 과거 상태인 회사 목록을 가져옵니다."""
     try:
         print(f"[Database] Connecting to MotherDuck (Path: {DB_PATH})...", flush=True)
-        conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+        conn = connect_motherduck()
         print("[Database] Connected. Initializing tables...", flush=True)
         conn.execute("CREATE DATABASE IF NOT EXISTS dart_financials")
         conn.execute("USE dart_financials")
@@ -140,12 +154,12 @@ def get_unprocessed_companies():
         return df.to_dict('records')
     except Exception as e:
         print(f"[Database Error] {e}", flush=True)
-        return []
+        raise
 
 def update_status_to_not_found(corp_code, corp_name):
     """실패한 경우(성공 외) 상태를 NOT_FOUND로 기록합니다."""
     try:
-        conn = duckdb.connect(DB_PATH, config={'motherduck_token': MD_TOKEN})
+        conn = connect_motherduck()
         conn.execute("USE dart_financials")
         conn.execute("""
             INSERT OR REPLACE INTO processing_status (corp_code, corp_name, last_base_period, status, processed_at)
@@ -158,7 +172,11 @@ def update_status_to_not_found(corp_code, corp_name):
 
 def run_automation():
     print("--- Starting Automation Script ---", flush=True)
-    companies = get_unprocessed_companies()
+    try:
+        companies = get_unprocessed_companies()
+    except Exception:
+        print("[Status] Database initialization failed. Aborting automation run.", flush=True)
+        raise
     if not companies:
         print("[Status] No unprocessed companies found. Everything is up to date.", flush=True)
         return

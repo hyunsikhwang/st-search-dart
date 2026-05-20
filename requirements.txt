@@ -1,7 +1,7 @@
 streamlit
 pandas
 requests
-duckdb
+duckdb==1.5.2
 lxml
 plotly
 great-tables
