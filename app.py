@@ -1332,8 +1332,8 @@ with query_tab:
         company_name = st.text_input("회사명", placeholder="예: 삼성전자", key="company_input", label_visibility="visible")
         year_month = st.text_input(
             "기준 연월 (YYYYMM)",
-            value="202603",
-            placeholder="202603",
+            value="202606",
+            placeholder="202606",
             key="year_month_input",
             label_visibility="visible"
         )
